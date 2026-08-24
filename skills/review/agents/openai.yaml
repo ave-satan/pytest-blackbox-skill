@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pytest Blackbox: Review"
+  short_description: "Review focused pytest contract changes"
+  default_prompt: "Use $pytest-blackbox:review to review these contract tests without changing files."
+policy:
+  allow_implicit_invocation: true

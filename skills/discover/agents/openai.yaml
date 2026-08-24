@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pytest Blackbox: Discover"
+  short_description: "Discover project contract-test policy"
+  default_prompt: "Use $pytest-blackbox:discover to configure contract-testing policy for this Python project."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pytest Blackbox: Write"
+  short_description: "Write black-box pytest contract tests"
+  default_prompt: "Use $pytest-blackbox:write to add contract tests for this Python application behavior."
+policy:
+  allow_implicit_invocation: true
