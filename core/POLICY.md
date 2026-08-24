@@ -16,15 +16,16 @@ Before changing tests, locate the nearest applicable `pyproject.toml` and inspec
 
 If it is absent:
 
-1. Run `../scripts/discover_project.py <project-root>` read-only.
+1. Run `../scripts/discover_project.py <project-root>` read-only. First onboarding always has a bundled fallback path that does not install the enhanced toolchain.
 2. Inspect the proposed choices and confidence. Do not read secrets, import or start the application, contact external systems, or mutate the project.
 3. Ask only about material ambiguous choices, plus the explicit O choice of whether pytest-blackbox may manage missing Python dependencies in a dedicated project dependency group. Number questions sequentially.
 4. Show the exact `pyproject.toml` patch and write it only after confirmation.
-5. In a monorepo, use the nearest component configuration; ask when ownership is ambiguous.
+5. If the confirmed patch enables `dependency_group`, show and run the project-native command that installs the baseline enhanced toolchain in that group, then rerun discovery in auto mode. This installation is part of the selected O capability, not a speculative test dependency.
+6. In a monorepo, use the nearest component configuration; ask when ownership is ambiguous.
 
 If the project has no `pyproject.toml`, offer to create one or continue with confirmed temporary choices. Never create a separate skill configuration file. Read [configuration.md](../references/configuration.md) for the schema, non-public coverage registry, discovery rules, and M/D/O enforcement.
 
-The managed-dependency capability is inactive unless onboarding records a non-empty `dependency_group` such as `dev-ai`. When active, add only concrete missing packages required by pytest-blackbox tooling or generated tests, using the project's package manager and that dedicated group. Never add the plugin itself to project dependencies, fall back to runtime/default/general `dev` dependencies, duplicate or move an already declared package, upgrade unrelated packages, or hand-edit a lockfile. Read the managed-dependency section in [configuration.md](../references/configuration.md) before changing dependencies.
+The managed-dependency capability is inactive unless onboarding records a non-empty `dependency_group` such as `dev-ai`. When active, install the documented baseline analysis toolchain and later add only concrete missing packages required by pytest-blackbox tooling or generated tests, using the project's package manager and that dedicated group. Without the capability, use bundled fallback commands and do not mutate dependencies. Never add the plugin itself to project dependencies, fall back to runtime/default/general `dev` dependencies, duplicate or move an already declared package, upgrade unrelated packages, or hand-edit a lockfile. Read the managed-dependency section in [configuration.md](../references/configuration.md) and [tooling.md](../references/tooling.md) before changing dependencies.
 
 ## Mandatory contract boundary
 
@@ -96,7 +97,7 @@ Read [repositories.md](../references/repositories.md) for repository APIs, aggre
 3. Build or update the transient contract-evidence matrix before editing tests; map each discovered operation and application-owned observable outcome class to a concrete test node or an explicit policy decision.
 4. Build the smallest fixture/repository/Service/messaging graph that exposes public test capabilities.
 5. Implement one-case contract tests with independent inputs and expectations.
-6. Run `../scripts/audit_suite.py <project-root>`, then focused and broader project checks as practical.
+6. Run `../scripts/lint_suite.py <project-root>` for deterministic diagnostics and `../scripts/audit_suite.py <project-root>` for the same diagnostics plus the preserved semantic review section, then focused and broader project checks as practical.
 7. Reconcile the matrix against collected test nodes; classify failures before editing behavior: application defect, contract mistake, support/environment failure, leaked state, or nondeterminism.
 8. Report the matrix summary, coverage boundary/exclusions, changed files, commands, pass counts, warnings, manual-review items, and blockers.
 

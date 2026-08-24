@@ -52,7 +52,7 @@ The generator facade defaults to `tests.generators`. Preserve a mature project's
 
 ## Managed skill dependencies (O)
 
-During onboarding, always ask once whether pytest-blackbox may add missing Python packages required by its bundled tooling or by tests it authors. This capability is opt-in and cannot be inferred from existing dependencies. Record it by adding one key to the main policy table:
+During onboarding, always ask once whether pytest-blackbox may install its baseline enhanced toolchain and later add missing Python packages required by tests it authors. This capability is opt-in and cannot be inferred from existing dependencies. Record it by adding one key to the main policy table:
 
 ```toml
 [tool.pytest-blackbox]
@@ -61,13 +61,13 @@ dependency_group = "dev-ai"
 
 The key's presence enables the capability and names its destination; do not add a second boolean flag. For a new project, propose `dev-ai`. If a mature project already has a clearly dedicated AI/agent-tooling dependency group, show the evidence and offer to reuse it. Never silently select the general runtime, default, `dev`, test, or lint group. If the project's package manager cannot represent a separate named group, report that limitation and ask for a coherent alternative instead of falling back.
 
-Onboarding records policy only; it does not install speculative packages or create an empty group. Later, when a requested workflow has a concrete missing dependency:
+Enabling this capability installs the baseline enhanced analysis toolchain documented in [tooling.md](tooling.md): Ruff, Packaging, PathSpec, and TOMLKit. This is a fixed capability implementation, not a speculative test dependency. Use the project-native package-manager command so the group, environment, and lockfile are updated coherently; then rerun discovery in auto mode. For later workflow-specific dependencies:
 
 1. Confirm that `dependency_group` is active and identify the owning `pyproject.toml`.
 2. Treat a compatible package already declared in any project dependency section as satisfied. Do not duplicate or move it merely to normalize layout.
 3. Name the exact missing packages, destination group, and project-native package-manager command before mutation.
 4. Use that command so `pyproject.toml`, the environment, and any lockfile change coherently. Never edit a lockfile by hand or upgrade unrelated packages.
-5. Add only development/tooling packages needed to execute pytest-blackbox helpers or the generated suite—for example a required TOML compatibility parser, pytest plugin, data generator, HTTP interceptor, or protocol test client. The pytest-blackbox plugin itself remains installed through its host marketplace and never belongs in the project's Python dependencies.
+5. Add only development/tooling packages needed to execute pytest-blackbox helpers or the generated suite—for example a pytest plugin, data generator, HTTP interceptor, or protocol test client. The pytest-blackbox plugin itself remains installed through its host marketplace and never belongs in the project's Python dependencies.
 
 When the key is absent, dependency management is inactive: do not modify dependency declarations or install packages. Report the concrete missing dependency and offer to enable the capability through an exact confirmed `pyproject.toml` patch. Host or sandbox approval may still be required for the eventual package-manager command even when the project policy is enabled.
 
@@ -100,7 +100,7 @@ When discovery finds a non-contract operation:
 
 ## Read-only discovery
 
-Run `scripts/discover_project.py <project-root>` when `[tool.pytest-blackbox]` is absent or the user requests a refresh. The script inspects filenames, Python imports, dependency declarations, pytest settings, and existing test layout without importing project code.
+Run `scripts/discover_project.py <project-root>` when `[tool.pytest-blackbox]` is absent or the user requests a refresh. The script inspects filenames, Python imports, dependency declarations, pytest settings, and existing test layout without importing project code. Auto mode uses the bundled fallback until the O capability is enabled and its toolchain is available; enhanced mode then adds library-backed requirement parsing, package-manager evidence, and gitignore-aware file evidence without weakening the safety boundary.
 
 Run the bundled scripts with an interpreter new enough to parse the project's Python syntax. They use stdlib `tomllib` on Python 3.11+ and fall back to the `tomli` backport on older Python. If neither is available they stop policy parsing with a clear diagnostic rather than installing a dependency or mutating the environment. Discovery reports how many Python files its interpreter could not parse.
 
@@ -122,12 +122,13 @@ If no `pyproject.toml` exists, offer either a minimal new file or temporary conf
 
 ## Enforcement and drift
 
-Auditor results have four forms:
+Audit output has two deliberately separate sections:
 
-- `ERROR`: mechanically proven M violation or contradiction with an active project-wide D choice;
-- `WARNING`: a non-binding departure from a D recommendation;
-- `MANUAL`: a semantic check the script cannot prove;
+- deterministic diagnostics: `ERROR` for a mechanically proven M violation or active D contradiction, and `WARNING` for a non-binding D recommendation;
+- semantic review: preserved `MANUAL` items, including every applicable `SEM*` requirement, which the static tool cannot prove;
 - no result for an O capability that is not enabled.
+
+`scripts/lint_suite.py` emits only deterministic diagnostics. `scripts/audit_suite.py` emits the same diagnostics plus semantic review. Both support bundled fallback and enhanced modes and use Ruff-like `path:line:column: CODE message` output; read [tooling.md](tooling.md) for mode and dependency details.
 
 Examples:
 

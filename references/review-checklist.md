@@ -6,7 +6,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 
 - Is the nearest applicable `[tool.pytest-blackbox]` present or has temporary policy been explicitly confirmed?
 - Does code agree with active layout, infrastructure, Compose, external-service, TestClass, and generator-backend choices?
-- If managed dependencies are enabled, is `dependency_group` a dedicated AI/tooling group, with only concrete missing packages added through the project package manager and no duplicate, unrelated upgrade, runtime/general-dev fallback, or hand-edited lockfile?
+- If managed dependencies are enabled, does the dedicated AI/tooling group supply the baseline enhanced toolchain while treating compatible declarations elsewhere as satisfied, with only concrete missing packages installed through the project package manager and no duplicate, unrelated upgrade, runtime/general-dev fallback, or hand-edited lockfile?
 - Does the coverage registry contain only generalized non-contract surface decisions, never public operations or per-operation entries?
 - For a mature suite, were legacy violations reported without an unauthorized broad refactor?
 
@@ -95,7 +95,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 
 ## Audit result
 
-- Did `scripts/audit_suite.py` run successfully?
+- Did `scripts/lint_suite.py` run successfully, and did `scripts/audit_suite.py` preserve and reconcile every applicable semantic item including `SEM*`?
 - Were warnings and manual-review items evaluated rather than ignored?
 - For a large full-suite audit, were independent surfaces optionally delegated while the primary agent retained census/policy/reconciliation?
 - Does the report name coverage boundary, exclusions, changed files, commands, pass counts, known legacy M violations, and blockers?

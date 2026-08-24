@@ -32,6 +32,7 @@ project's existing `pyproject.toml` rather than in a separate plugin config.
 | Workflow | Purpose |
 | --- | --- |
 | `discover` | Inspect a project read-only and propose project-wide test policy. |
+| `lint` | Run deterministic machine-checkable policy diagnostics. |
 | `write` | Add black-box contract coverage for requested application behavior. |
 | `repair` | Diagnose and repair existing failing or nondeterministic tests. |
 | `review` | Perform a focused, read-only review of tests or a test diff. |
@@ -44,6 +45,7 @@ invoked explicitly.
 
 ```text
 $pytest-blackbox:discover
+$pytest-blackbox:lint
 $pytest-blackbox:write
 $pytest-blackbox:repair
 $pytest-blackbox:review
@@ -54,6 +56,7 @@ $pytest-blackbox:audit
 
 ```text
 /pytest-blackbox:discover
+/pytest-blackbox:lint
 /pytest-blackbox:write
 /pytest-blackbox:repair
 /pytest-blackbox:review
@@ -135,39 +138,51 @@ external_services = "intercept"
 generators_backend = "faker"
 ```
 
-Onboarding also asks whether the plugin may install concrete missing Python
-dependencies into a dedicated project group. This opt-in capability is omitted
-when declined; when enabled, the default is:
+Onboarding also asks whether the plugin may install its enhanced analysis
+toolchain and later concrete missing Python dependencies into a dedicated
+project group. This opt-in capability is omitted when declined; when enabled,
+the default is:
 
 ```toml
 [tool.pytest-blackbox]
 dependency_group = "dev-ai"
 ```
 
-The plugin itself is still installed through Codex or Claude Code. This group
-contains only Python tooling needed by its helpers or generated tests, never
-runtime dependencies or speculative packages.
+The baseline toolchain is Ruff, Packaging, PathSpec, and TOMLKit. It is
+installed through the project's package manager only after confirmation. The
+plugin itself is still installed through Codex or Claude Code; runtime and
+general development groups remain untouched.
 
 See [references/configuration.md](references/configuration.md) for the complete
 schema, adaptive choices, and non-public coverage registry.
 
 ## Bundled tooling
 
-The plugin includes two read-only Python helpers:
+The plugin includes bundled fallback commands and an opt-in enhanced mode:
 
 ```bash
 python scripts/discover_project.py /path/to/project
+python scripts/lint_suite.py /path/to/project
 python scripts/audit_suite.py /path/to/project
 ```
 
 - `discover_project.py` gathers onboarding evidence without importing project
   code, reading common secret files, starting infrastructure, or mutating the
   project.
-- `audit_suite.py` detects mechanically provable policy violations and reports
-  semantic checks that still require manual review.
+- `lint_suite.py` emits mechanically provable diagnostics in Ruff-like text or
+  JSON.
+- `audit_suite.py` adds the preserved semantic review section, including every
+  applicable `SEM*` requirement.
 
-The helpers require Python 3.10 or newer. Python 3.11+ is recommended; Python
-3.10 requires the `tomli` backport for TOML policy parsing.
+All three commands support `--mode auto|fallback|enhanced`. Auto mode stays on
+the bundled fallback until `dependency_group` is confirmed and the
+enhanced toolchain is available. See
+[references/tooling.md](references/tooling.md) for exact requirements and mode
+semantics.
+
+The helpers require Python 3.10 or newer. On Python 3.11+ fallback uses only the
+standard library; Python 3.10 requires the `tomli` compatibility dependency,
+which is included conditionally in the confirmed enhanced baseline.
 
 ## Repository structure
 
@@ -186,6 +201,7 @@ pytest-blackbox-skill/
 └── skills/
     ├── audit/
     ├── discover/
+    ├── lint/
     ├── repair/
     ├── review/
     └── write/

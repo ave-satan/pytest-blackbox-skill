@@ -1,0 +1,51 @@
+# Analysis tooling
+
+Pytest Blackbox exposes two checks and one discovery command:
+
+- `scripts/lint_suite.py`: mechanically provable diagnostics only;
+- `scripts/audit_suite.py`: the same diagnostics plus manual semantic review, including all applicable `SEM*` items;
+- `scripts/discover_project.py`: read-only onboarding evidence and policy proposal.
+
+All commands accept `--mode auto|fallback|enhanced`. `auto` is the normal mode. `fallback` never installs anything and uses only the standard library on Python 3.11+ (`tomli` is required on Python 3.10). `enhanced` requires the project to have opted in through `dependency_group` and uses the baseline toolchain. `--output-format concise|json` is available for lint and audit.
+
+## Baseline enhanced toolchain
+
+Install these requirements together in the confirmed dedicated group:
+
+```text
+ruff>=0.16,<0.17
+packaging>=24
+pathspec>=0.12
+tomlkit>=0.13
+tomli>=2; python_version < '3.11'
+```
+
+Use the project-native command. Examples for a group named `dev-ai`:
+
+```bash
+uv add --group dev-ai 'ruff>=0.16,<0.17' 'packaging>=24' 'pathspec>=0.12' 'tomlkit>=0.13' 'tomli>=2; python_version < "3.11"'
+poetry add --group dev-ai 'ruff>=0.16,<0.17' 'packaging>=24' 'pathspec>=0.12' 'tomlkit>=0.13' 'tomli>=2; python_version < "3.11"'
+pdm add --group dev-ai 'ruff>=0.16,<0.17' 'packaging>=24' 'pathspec>=0.12' 'tomlkit>=0.13' 'tomli>=2; python_version < "3.11"'
+```
+
+Show the exact command before running it. Treat compatible requirements already declared anywhere in the project as satisfied; do not duplicate or move them. If the package manager cannot represent a named group, report that limitation instead of using runtime or general development dependencies.
+
+Run enhanced commands with the project's managed interpreter so the confirmed
+group is importable. For example, use `uv run --group dev-ai python ...`,
+`poetry run python ...`, or `pdm run python ...` as appropriate; invoking an
+unrelated system interpreter must not silently downgrade an installed toolchain
+to fallback.
+
+## Enhanced audit
+
+Ruff owns only compatible first-party syntax and pytest rules plus explicit banned APIs. The allowlist intentionally excludes rules that contradict Pytest Blackbox. In particular, do not enable `PT003`: explicit `scope="function"` is required for the transaction fixture even though generic pytest style considers it redundant. Project-specific and cross-file rules remain in the PBB checker because Ruff has no third-party rule API.
+
+The enhanced runner invokes Ruff through its supported CLI and parses Ruff JSON. It does not patch Ruff, use internal Rust crates, or replace the project's ordinary Ruff configuration. The project's own `ruff check` remains a separate normal project check.
+
+## Semantic review
+
+Manual findings never appear in `lint_suite.py`. They remain in the `Semantic review required` section of `audit_suite.py`. `SEM001` is always present; `SEM002` follows focused registry selections; `SEM003` and `SEM004` follow scheduler and worker surfaces. A clean deterministic section does not satisfy these items or prove coverage completeness.
+
+## Enhanced discovery
+
+First onboarding can always run fallback discovery. After opt-in and installation, auto mode uses Packaging for requirement parsing, PathSpec for gitignore-aware evidence, and TOMLKit for project metadata. Enhanced discovery preserves the same read-only boundary: it does not import project code, start infrastructure, execute project commands, or mutate files.
