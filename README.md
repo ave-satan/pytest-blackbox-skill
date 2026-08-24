@@ -119,7 +119,7 @@ applicable `pyproject.toml`. If it is absent, the `discover` workflow:
 
 1. Scans project structure without importing or starting the application.
 2. Proposes material project-wide choices with confidence and evidence.
-3. Asks only about ambiguous choices.
+3. Asks only about ambiguous choices plus the explicit managed-dependency opt-in.
 4. Shows the exact `pyproject.toml` patch before writing anything.
 
 Recommended defaults for a new suite are:
@@ -134,6 +134,19 @@ compose_lifecycle = "disabled"
 external_services = "intercept"
 generators_backend = "faker"
 ```
+
+Onboarding also asks whether the plugin may install concrete missing Python
+dependencies into a dedicated project group. This opt-in capability is omitted
+when declined; when enabled, the default is:
+
+```toml
+[tool.pytest-blackbox]
+dependency_group = "dev-ai"
+```
+
+The plugin itself is still installed through Codex or Claude Code. This group
+contains only Python tooling needed by its helpers or generated tests, never
+runtime dependencies or speculative packages.
 
 See [references/configuration.md](references/configuration.md) for the complete
 schema, adaptive choices, and non-public coverage registry.

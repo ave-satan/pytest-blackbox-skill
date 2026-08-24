@@ -1,6 +1,6 @@
 {
   "name": "pytest-blackbox",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Design, write, repair, review, discover, and audit Python black-box pytest contract suites.",
   "author": {
     "name": "ave-satan",

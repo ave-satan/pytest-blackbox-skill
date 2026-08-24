@@ -6,6 +6,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 
 - Is the nearest applicable `[tool.pytest-blackbox]` present or has temporary policy been explicitly confirmed?
 - Does code agree with active layout, infrastructure, Compose, external-service, TestClass, and generator-backend choices?
+- If managed dependencies are enabled, is `dependency_group` a dedicated AI/tooling group, with only concrete missing packages added through the project package manager and no duplicate, unrelated upgrade, runtime/general-dev fallback, or hand-edited lockfile?
 - Does the coverage registry contain only generalized non-contract surface decisions, never public operations or per-operation entries?
 - For a mature suite, were legacy violations reported without an unauthorized broad refactor?
 

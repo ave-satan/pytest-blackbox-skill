@@ -120,7 +120,55 @@ def dependency_names(data: Mapping[str, Any]) -> set[str]:
             section = poetry.get(section_name, {})
             if isinstance(section, Mapping):
                 names.update(str(name).replace("_", "-").lower() for name in section)
+        poetry_groups = poetry.get("group", {})
+        if isinstance(poetry_groups, Mapping):
+            for group in poetry_groups.values():
+                if not isinstance(group, Mapping):
+                    continue
+                section = group.get("dependencies", {})
+                if isinstance(section, Mapping):
+                    names.update(
+                        str(name).replace("_", "-").lower() for name in section
+                    )
+
+    tool = data.get("tool", {})
+    pdm = tool.get("pdm", {}) if isinstance(tool, Mapping) else {}
+    if isinstance(pdm, Mapping):
+        pdm_groups = pdm.get("dev-dependencies", {})
+        if isinstance(pdm_groups, Mapping):
+            for values in pdm_groups.values():
+                if isinstance(values, list):
+                    for value in values:
+                        add_value(value)
     return names
+
+
+def dependency_group_names(data: Mapping[str, Any]) -> list[str]:
+    names: set[str] = set()
+
+    groups = data.get("dependency-groups", {})
+    if isinstance(groups, Mapping):
+        names.update(str(name) for name in groups)
+
+    tool = data.get("tool", {})
+    if not isinstance(tool, Mapping):
+        return sorted(names)
+
+    poetry = tool.get("poetry", {})
+    if isinstance(poetry, Mapping):
+        poetry_groups = poetry.get("group", {})
+        if isinstance(poetry_groups, Mapping):
+            names.update(str(name) for name in poetry_groups)
+        if isinstance(poetry.get("dev-dependencies"), Mapping):
+            names.add("dev")
+
+    pdm = tool.get("pdm", {})
+    if isinstance(pdm, Mapping):
+        pdm_groups = pdm.get("dev-dependencies", {})
+        if isinstance(pdm_groups, Mapping):
+            names.update(str(name) for name in pdm_groups)
+
+    return sorted(names)
 
 
 def python_facts(root: Path) -> tuple[Counter[str], int, bool, int]:
@@ -197,11 +245,22 @@ def discover(root: Path) -> dict[str, Any]:
     owner, nested = find_pyprojects(root)
     pyproject, pyproject_error = read_pyproject(owner)
     dependencies = dependency_names(pyproject)
+    dependency_groups = dependency_group_names(pyproject)
     imports, async_defs, compose_literal, parse_failures = python_facts(root)
     layout = layout_facts(root)
     configured = (
         isinstance(pyproject.get("tool"), Mapping)
         and isinstance(pyproject.get("tool", {}).get("pytest-blackbox"), Mapping)
+    )
+    policy = (
+        pyproject.get("tool", {}).get("pytest-blackbox", {}) if configured else {}
+    )
+    configured_dependency_group = policy.get("dependency_group")
+    managed_dependency_group = (
+        configured_dependency_group.strip()
+        if isinstance(configured_dependency_group, str)
+        and configured_dependency_group.strip()
+        else None
     )
     generator, generator_confidence = choose_generator(dependencies, imports)
     testcontainers = "testcontainers" in dependencies or bool(imports["testcontainers"])
@@ -243,8 +302,16 @@ def discover(root: Path) -> dict[str, Any]:
                 "value": generator,
                 "confidence": generator_confidence,
             },
+            "dependency_groups": dependency_groups,
         },
         "proposal": proposal,
+        "optional_capabilities": {
+            "managed_dependencies": {
+                "config_key": "dependency_group",
+                "suggested_value": managed_dependency_group or "dev-ai",
+                "enabled": managed_dependency_group is not None,
+            }
+        },
         "manual_confirmation": [
             "nearest pyproject ownership when nested_pyprojects contains another candidate",
             "infrastructure provider availability and protocol compatibility",
@@ -258,6 +325,16 @@ def discover(root: Path) -> dict[str, Any]:
                 "mock servers, or mixed mode with one stable backend per integration"
             ),
             "whether an observed Compose mode is intentional",
+            *(
+                [
+                    (
+                        "whether pytest-blackbox may add concrete missing Python "
+                        "dependencies to a dedicated group (suggested: dev-ai)"
+                    )
+                ]
+                if managed_dependency_group is None
+                else []
+            ),
         ],
     }
 
@@ -290,6 +367,10 @@ def main(argv: Iterable[str] | None = None) -> int:
     print(json.dumps(result["facts"], indent=2, sort_keys=True))
     print("\nProposed patch (review and confirm before writing):")
     print(toml_proposal(result["proposal"]))
+    managed = result["optional_capabilities"]["managed_dependencies"]
+    state = "enabled" if managed["enabled"] else "disabled until confirmed"
+    print(f"\nOptional capability ({state}):")
+    print(f'{managed["config_key"]} = {json.dumps(managed["suggested_value"])}')
     print("\nManual confirmation:")
     for item in result["manual_confirmation"]:
         print(f"  - {item}")

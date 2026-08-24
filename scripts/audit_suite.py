@@ -28,6 +28,7 @@ class Policy:
     external_services: str = "intercept"
     infrastructure: str = "existing-services"
     generators_backend: str = "faker"
+    dependency_group: str | None = None
     coverage_rules: tuple[tuple[str, str], ...] = ()
 
 
@@ -271,6 +272,7 @@ def load_policy(root: Path) -> tuple[Policy, list[str]]:
     external = raw.get("external_services", "intercept")
     infrastructure = raw.get("infrastructure", "existing-services")
     generators_backend = raw.get("generators_backend", "faker")
+    dependency_group = raw.get("dependency_group")
     prefer_classes = raw.get("prefer_test_classes", True)
     if version != 1:
         errors.append(f"unsupported or missing config_version {version!r}")
@@ -291,6 +293,29 @@ def load_policy(root: Path) -> tuple[Policy, list[str]]:
         infrastructure = "existing-services"
     if not isinstance(generators_backend, str) or not generators_backend.strip():
         generators_backend = "faker"
+    if dependency_group is not None:
+        if not isinstance(dependency_group, str) or not dependency_group.strip():
+            errors.append("dependency_group must be a non-empty string when enabled")
+            dependency_group = None
+        elif dependency_group.strip().lower() in {
+            "default",
+            "dev",
+            "development",
+            "lint",
+            "linting",
+            "main",
+            "qa",
+            "runtime",
+            "test",
+            "testing",
+        }:
+            errors.append(
+                "dependency_group must name a dedicated AI/tooling group, "
+                "not a runtime, general dev, or test group"
+            )
+            dependency_group = None
+        else:
+            dependency_group = dependency_group.strip()
     coverage = raw.get("coverage", [])
     coverage_rules: list[tuple[str, str]] = []
     if not isinstance(coverage, list):
@@ -329,6 +354,7 @@ def load_policy(root: Path) -> tuple[Policy, list[str]]:
             ),
             infrastructure=infrastructure,
             generators_backend=generators_backend,
+            dependency_group=dependency_group,
             coverage_rules=tuple(coverage_rules),
         ),
         errors,

@@ -18,11 +18,13 @@ If it is absent:
 
 1. Run `../scripts/discover_project.py <project-root>` read-only.
 2. Inspect the proposed choices and confidence. Do not read secrets, import or start the application, contact external systems, or mutate the project.
-3. Ask only about material ambiguous choices. Number questions sequentially.
+3. Ask only about material ambiguous choices, plus the explicit O choice of whether pytest-blackbox may manage missing Python dependencies in a dedicated project dependency group. Number questions sequentially.
 4. Show the exact `pyproject.toml` patch and write it only after confirmation.
 5. In a monorepo, use the nearest component configuration; ask when ownership is ambiguous.
 
 If the project has no `pyproject.toml`, offer to create one or continue with confirmed temporary choices. Never create a separate skill configuration file. Read [configuration.md](../references/configuration.md) for the schema, non-public coverage registry, discovery rules, and M/D/O enforcement.
+
+The managed-dependency capability is inactive unless onboarding records a non-empty `dependency_group` such as `dev-ai`. When active, add only concrete missing packages required by pytest-blackbox tooling or generated tests, using the project's package manager and that dedicated group. Never add the plugin itself to project dependencies, fall back to runtime/default/general `dev` dependencies, duplicate or move an already declared package, upgrade unrelated packages, or hand-edit a lockfile. Read the managed-dependency section in [configuration.md](../references/configuration.md) before changing dependencies.
 
 ## Mandatory contract boundary
 
