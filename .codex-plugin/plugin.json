@@ -1,6 +1,6 @@
 {
   "name": "pytest-blackbox",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Design, write, repair, review, discover, and audit Python black-box pytest contract suites.",
   "author": {
     "name": "ave-satan",
@@ -24,15 +24,20 @@
     "developerName": "ave-satan",
     "category": "Engineering",
     "websiteURL": "https://github.com/ave-satan/pytest-blackbox-skill",
+    "privacyPolicyURL": "https://github.com/ave-satan/pytest-blackbox-skill/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/ave-satan/pytest-blackbox-skill/blob/main/TERMS.md",
     "capabilities": [
       "Interactive",
       "Read",
       "Write"
     ],
     "defaultPrompt": [
-      "Add black-box tests for this behavior",
-      "Repair these failing contract tests",
-      "Audit this complete pytest suite"
-    ]
+      "Discover the black-box test policy for this Python service.",
+      "Add contract tests for this new API endpoint.",
+      "Audit this pytest suite for missing contracts and policy drift."
+    ],
+    "brandColor": "#6D28D9",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
   }
 }

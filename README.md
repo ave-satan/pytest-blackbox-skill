@@ -1,5 +1,7 @@
 # pytest-blackbox
 
+<img src="assets/logo.png" alt="Pytest Blackbox logo" width="160">
+
 Black-box pytest contract testing workflows for Codex and Claude Code.
 
 Pytest Blackbox helps coding agents discover, write, repair, review, and audit
@@ -126,9 +128,11 @@ The helpers require Python 3.10 or newer. Python 3.11+ is recommended; Python
 pytest-blackbox-skill/
 ├── .claude-plugin/plugin.json
 ├── .codex-plugin/plugin.json
+├── assets/
 ├── core/POLICY.md
 ├── references/
 ├── scripts/
+├── submission/
 └── skills/
     ├── audit/
     ├── discover/
@@ -146,6 +150,14 @@ command.
 Issues and pull requests are welcome. Please open an issue before proposing a
 broad policy change: universal rules should be backed by repeatable failures or
 clear contract-testing invariants rather than a single project convention.
+
+## Support and legal
+
+- Report non-sensitive bugs and request features through
+  [GitHub Issues](https://github.com/ave-satan/pytest-blackbox-skill/issues).
+- Review the [Privacy Policy](PRIVACY.md) and [Terms of Use](TERMS.md).
+- Do not post secrets, credentials, proprietary source code, or personal data in
+  public issues.
 
 ## License
 
