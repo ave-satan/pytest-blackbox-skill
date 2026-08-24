@@ -10,9 +10,10 @@ submission form. It does not submit or publish the plugin.
 - **Developer name:** ave-satan
 - **Category:** Engineering
 - **Short description:** Black-box pytest contract testing workflows
-- **Long description:** Discover project policy, write and repair contract
-  tests, review focused changes, and audit complete Python pytest suites through
-  public application boundaries.
+- **Long description:** Discover project policy, lint deterministic rules,
+  write and repair contract tests, apply release migrations, review focused
+  changes, and audit complete Python pytest suites through public application
+  boundaries.
 - **Website:** https://github.com/ave-satan/pytest-blackbox-skill
 - **Support:** https://github.com/ave-satan/pytest-blackbox-skill/issues
 - **Privacy:** https://github.com/ave-satan/pytest-blackbox-skill/blob/main/PRIVACY.md
@@ -150,9 +151,10 @@ readiness immediately before submission.
 
 ## Initial release notes
 
-Initial skills-only submission of Pytest Blackbox. The plugin provides five
-workflows for discovering project policy, writing and repairing Python contract
-tests, reviewing focused changes, and auditing complete pytest suites. It has no
-hosted backend, authentication, test account, telemetry, or reviewer
-credentials. The final bundle has been tested through a local Codex marketplace;
-Claude Code runtime validation remains pending until the CLI is available.
+Initial skills-only submission of Pytest Blackbox. The plugin provides seven
+workflows for discovering project policy, linting deterministic rules, writing
+and repairing Python contract tests, applying release migrations, reviewing
+focused changes, and auditing complete pytest suites. It has no hosted backend,
+authentication, test account, telemetry, or reviewer credentials. The final
+bundle has been tested through a local Codex marketplace; Claude Code runtime
+validation remains pending until the CLI is available.

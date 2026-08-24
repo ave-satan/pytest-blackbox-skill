@@ -4,10 +4,11 @@
 
 Black-box pytest contract testing workflows for Codex and Claude Code.
 
-Pytest Blackbox helps coding agents discover, write, repair, review, and audit
-Python contract tests through public application boundaries. It is designed for
-HTTP and JSON-RPC APIs, jobs, schedulers, workers, message handlers, databases,
-caches, object stores, brokers, and outbound HTTP integrations.
+Pytest Blackbox helps coding agents discover, lint, write, repair, review,
+upgrade, and audit Python contract tests through public application boundaries.
+It is designed for HTTP and JSON-RPC APIs, jobs, schedulers, workers, message
+handlers, databases, caches, object stores, brokers, and outbound HTTP
+integrations.
 
 > **Status:** early release, distributed directly from GitHub. Publication in
 > public plugin directories is deferred.
@@ -36,6 +37,7 @@ project's existing `pyproject.toml` rather than in a separate plugin config.
 | `write` | Add black-box contract coverage for requested application behavior. |
 | `repair` | Diagnose and repair existing failing or nondeterministic tests. |
 | `review` | Perform a focused, read-only review of tests or a test diff. |
+| `upgrade` | Apply release-specific project migrations from the changelog. |
 | `audit` | Audit a complete suite or explicitly named full component surface. |
 
 All workflows support model-driven automatic invocation. They can also be
@@ -49,6 +51,7 @@ $pytest-blackbox:lint
 $pytest-blackbox:write
 $pytest-blackbox:repair
 $pytest-blackbox:review
+$pytest-blackbox:upgrade
 $pytest-blackbox:audit
 ```
 
@@ -60,6 +63,7 @@ $pytest-blackbox:audit
 /pytest-blackbox:write
 /pytest-blackbox:repair
 /pytest-blackbox:review
+/pytest-blackbox:upgrade
 /pytest-blackbox:audit
 ```
 
@@ -87,6 +91,10 @@ codex plugin marketplace upgrade ave-satan
 codex plugin add pytest-blackbox@ave-satan
 ```
 
+After updating, use `$pytest-blackbox:upgrade` when an existing project needs
+the release-specific actions in [CHANGELOG.md](CHANGELOG.md). The workflow
+applies only matching idempotent migrations and does not rerun a full audit.
+
 ### Claude Code
 
 Inside Claude Code, add the same GitHub repository and install the plugin:
@@ -99,6 +107,9 @@ Inside Claude Code, add the same GitHub repository and install the plugin:
 If Claude Code asks for it, run `/reload-plugins` after installation. To fetch
 new releases later, run `/plugin marketplace update ave-satan`; third-party
 marketplace auto-updates are disabled by default.
+
+Use `/pytest-blackbox:upgrade` after updating when an existing project needs
+the conditional migrations in [CHANGELOG.md](CHANGELOG.md).
 
 ### Development checkout
 
@@ -204,6 +215,7 @@ pytest-blackbox-skill/
     ├── lint/
     ├── repair/
     ├── review/
+    ├── upgrade/
     └── write/
 ```
 

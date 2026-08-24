@@ -1,7 +1,7 @@
 {
   "name": "pytest-blackbox",
   "version": "0.2.0",
-  "description": "Discover, lint, design, write, repair, review, and audit Python black-box pytest contract suites.",
+  "description": "Discover, lint, design, write, repair, review, upgrade, and audit Python black-box pytest contract suites.",
   "author": {
     "name": "ave-satan",
     "url": "https://github.com/ave-satan"
