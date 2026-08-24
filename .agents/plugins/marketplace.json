@@ -9,7 +9,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/ave-satan/pytest-blackbox-skill.git",
-        "ref": "main"
+        "ref": "v0.1.2"
       },
       "policy": {
         "installation": "AVAILABLE",
