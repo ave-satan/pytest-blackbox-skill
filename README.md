@@ -9,7 +9,8 @@ Python contract tests through public application boundaries. It is designed for
 HTTP and JSON-RPC APIs, jobs, schedulers, workers, message handlers, databases,
 caches, object stores, brokers, and outbound HTTP integrations.
 
-> **Status:** early release. Marketplace publication is planned separately.
+> **Status:** early release, distributed directly from GitHub. Publication in
+> public plugin directories is deferred.
 
 ## What it optimizes for
 
@@ -61,22 +62,55 @@ $pytest-blackbox:audit
 
 ## Installation
 
-Public marketplace installation will be documented with the first release.
-For local evaluation, clone the repository:
+The plugin is distributed only through its GitHub repository. Both hosts use a
+small GitHub-backed marketplace catalog so the plugin remains installable and
+updatable without a public directory listing.
+
+### Codex
+
+Add the GitHub repository as a marketplace, then install the plugin:
+
+```bash
+codex plugin marketplace add ave-satan/pytest-blackbox-skill
+codex plugin add pytest-blackbox@ave-satan
+```
+
+Start a new Codex task after installation so the workflows are discovered.
+
+To update an existing installation:
+
+```bash
+codex plugin marketplace upgrade ave-satan
+codex plugin add pytest-blackbox@ave-satan
+```
+
+### Claude Code
+
+Inside Claude Code, add the same GitHub repository and install the plugin:
+
+```text
+/plugin marketplace add ave-satan/pytest-blackbox-skill
+/plugin install pytest-blackbox@ave-satan
+```
+
+If Claude Code asks for it, run `/reload-plugins` after installation. To fetch
+new releases later, run `/plugin marketplace update ave-satan`; third-party
+marketplace auto-updates are disabled by default.
+
+### Development checkout
+
+Clone the repository when you want to inspect or modify the plugin locally:
 
 ```bash
 git clone https://github.com/ave-satan/pytest-blackbox-skill.git
 cd pytest-blackbox-skill
 ```
 
-Claude Code can load the checkout directly:
+Claude Code can load that checkout directly without installing it:
 
 ```bash
 claude --plugin-dir ./
 ```
-
-For Codex, expose the checkout through a local plugin marketplace following the
-[official local plugin instructions](https://developers.openai.com/plugins/build/plugins#install-a-local-plugin-manually).
 
 ## Project onboarding
 
@@ -126,7 +160,10 @@ The helpers require Python 3.10 or newer. Python 3.11+ is recommended; Python
 
 ```text
 pytest-blackbox-skill/
-├── .claude-plugin/plugin.json
+├── .agents/plugins/marketplace.json
+├── .claude-plugin/
+│   ├── marketplace.json
+│   └── plugin.json
 ├── .codex-plugin/plugin.json
 ├── assets/
 ├── core/POLICY.md

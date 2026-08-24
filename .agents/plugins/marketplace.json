@@ -1,0 +1,21 @@
+{
+  "name": "ave-satan",
+  "interface": {
+    "displayName": "ave-satan"
+  },
+  "plugins": [
+    {
+      "name": "pytest-blackbox",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/ave-satan/pytest-blackbox-skill.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    }
+  ]
+}

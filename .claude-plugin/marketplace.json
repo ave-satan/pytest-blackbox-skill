@@ -1,0 +1,18 @@
+{
+  "name": "ave-satan",
+  "owner": {
+    "name": "ave-satan"
+  },
+  "description": "Open-source coding agent plugins maintained by ave-satan.",
+  "plugins": [
+    {
+      "name": "pytest-blackbox",
+      "source": {
+        "source": "github",
+        "repo": "ave-satan/pytest-blackbox-skill",
+        "ref": "main"
+      },
+      "description": "Black-box pytest contract testing workflows for Python services"
+    }
+  ]
+}
