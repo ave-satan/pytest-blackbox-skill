@@ -27,7 +27,7 @@ Do not model transports, queues, topics, streams, deliveries, or emitted message
 
 ## Repository interfaces
 
-Group by model/table, aggregate root, or external resource type. Implement only operations tests need, using canonical names:
+Group by the state being mutated or observed: model/table, aggregate root, cache namespace, object resource type, or another coherent ownership boundary. A helper belongs to the repository that owns its target state; never place it in a neighboring repository merely because that repository can discover a foreign key or identifier. Implement only operations tests need, using canonical names:
 
 - `create(**overrides)`;
 - optional `create_many(amount, **overrides)`;
@@ -153,7 +153,7 @@ Functions defined inside test modules may perform only pure in-memory constructi
 
 Reusable helpers and support APIs return named typed objects for structured internal results. Use immutable dataclasses or focused DTOs for created entities, credentials, prepared contexts, object metadata, collected messages, and any result with multiple semantically named fields. Do not make callers remember string keys in `dict[str, object]` or positions in tuples. A dictionary remains appropriate only when the dictionary itself is the public/natural value: JSON or message payload, headers, configuration overrides, arbitrary metadata, or an intentionally raw stored mapping. Convert multi-column database result mappings to DTOs before returning them from repositories.
 
-Preserve and reuse known preparation data. A repository or fixture that creates an entity returns the complete typed record required by downstream setup. Client/worker/consumer fixtures and public entity fixtures reuse that record rather than issuing `get_one`, `select`, Redis reads, or equivalent lookups merely to recover known setup data. Re-read when a later setup step or the tested application operation may have changed persisted state, or when the current persisted state is itself the artifact. Disposable intermediates that no consumer needs do not have to be returned.
+Preserve and reuse known preparation data. A repository or fixture that creates an entity returns the complete typed record required by downstream setup, including stable storage identifiers needed to address related state. Client/worker/consumer fixtures, state repositories, and public entity fixtures reuse that record rather than issuing `get_one`, `select`, index scans, Redis reads, or equivalent lookups merely to recover known setup data. Pass the known identifier into the repository that owns the next mutation; do not make another repository rediscover it and then mutate foreign state. Re-read when a later setup step or the tested application operation may have changed persisted state, or when the current persisted state is itself the artifact. Disposable intermediates that no consumer needs do not have to be returned.
 
 ## Generated data
 

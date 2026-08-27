@@ -136,43 +136,6 @@ def fixture_returns_generated_value(
     return bool(visitor.calls)
 
 
-def literal_param_ids(decorators: Sequence[ast.expr]) -> set[str]:
-    result: set[str] = set()
-    for decorator in decorators:
-        if not isinstance(decorator, ast.Call):
-            continue
-        if (dotted_name(decorator.func) or "").rsplit(".", 1)[-1] != "parametrize":
-            continue
-        if len(decorator.args) < 2:
-            continue
-        rows = decorator.args[1]
-        if isinstance(rows, (ast.List, ast.Tuple)):
-            for row in rows.elts:
-                if (
-                    not isinstance(row, ast.Call)
-                    or dotted_name(row.func) != "pytest.param"
-                ):
-                    continue
-                for keyword in row.keywords:
-                    if (
-                        keyword.arg == "id"
-                        and isinstance(keyword.value, ast.Constant)
-                        and isinstance(keyword.value.value, str)
-                    ):
-                        result.add(keyword.value.value.lower())
-        ids_node = next(
-            (keyword.value for keyword in decorator.keywords if keyword.arg == "ids"),
-            None,
-        )
-        if isinstance(ids_node, (ast.List, ast.Tuple)):
-            result.update(
-                element.value.lower()
-                for element in ids_node.elts
-                if isinstance(element, ast.Constant) and isinstance(element.value, str)
-            )
-    return result
-
-
 def is_json_call(node: ast.AST) -> bool:
     return (
         isinstance(node, ast.Call)
@@ -444,13 +407,24 @@ class Audit:
 
         if tests:
             self.audit_test_path(path)
-        if path.name == "test_success.py" and self.policy.layout == "standard":
+        forbidden_generic_categories = {
+            "test_behavior.py",
+            "test_happy_path.py",
+            "test_success.py",
+            "test_technical.py",
+            "test_works.py",
+        }
+        if (
+            path.name in forbidden_generic_categories
+            and self.policy.layout == "standard"
+        ):
             self.add(
                 "ERROR" if self.policy.configured else "WARNING",
                 "STR003",
                 path,
                 1,
-                "active standard layout forbids test_success.py",
+                f"active standard layout forbids vague category {path.name!r}; "
+                "name the public contract behavior instead",
             )
 
         self.audit_imports(path, tree)
@@ -551,22 +525,46 @@ class Audit:
         self,
         path: Path,
         test: ast.FunctionDef | ast.AsyncFunctionDef,
-        decorators: Sequence[ast.expr],
+        _decorators: Sequence[ast.expr],
     ) -> None:
-        if path.name == "test_validation.py":
-            ids = literal_param_ids(decorators)
-            boundary_tokens = ("minimum", "maximum", "boundary", "below-", "above-")
-            ordinary_tokens = ("ordinary", "random", "typical")
-            if any(
-                token in value for token in boundary_tokens for value in ids
-            ) and not any(token in value for token in ordinary_tokens for value in ids):
+        for node in ast.walk(test):
+            if not isinstance(node, (ast.With, ast.AsyncWith)):
+                continue
+            exception_names = {
+                dotted_name(argument) or ""
+                for item in node.items
+                if isinstance(item.context_expr, ast.Call)
+                and (dotted_name(item.context_expr.func) or "").endswith("raises")
+                for argument in item.context_expr.args[:1]
+            }
+            if not any(
+                token in name.lower()
+                for name in exception_names
+                for token in ("handshake", "websocket")
+            ):
+                continue
+            if len(node.body) != 1 or not isinstance(
+                node.body[0], (ast.With, ast.AsyncWith)
+            ):
+                continue
+            handshake = node.body[0]
+            connects = [
+                item.context_expr
+                for item in handshake.items
+                if isinstance(item.context_expr, ast.Call)
+                and (dotted_name(item.context_expr.func) or "").rsplit(".", 1)[-1]
+                in {"connect", "websocket_connect"}
+            ]
+            if connects and len(handshake.body) == 1 and isinstance(
+                handshake.body[0], ast.Pass
+            ):
                 self.add(
-                    "WARNING",
-                    "VAL002",
+                    "ERROR",
+                    "WS001",
                     path,
-                    test.lineno,
-                    "boundary validation matrix has no explicit randomized "
-                    "ordinary-valid row; confirm the enum-only exception",
+                    node.lineno,
+                    "expected WebSocket handshake denial is a wire value; normalize it "
+                    "in the test client instead of pytest.raises plus an empty context",
                 )
 
         call_counts: dict[str, list[ast.Call]] = {}

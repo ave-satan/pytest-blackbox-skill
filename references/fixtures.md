@@ -40,7 +40,7 @@ optional organizational group
 terminal operation/component
 ```
 
-Narrower code may import broader code. Broader layers never import `tests/test_*/`; groups never import narrower components; siblings never import each other's private implementation. Promote only the smallest genuinely shared mechanism to the correct root layer.
+Narrower code may import broader code. Broader layers never import `tests/test_*/`; groups never import narrower components; siblings never import each other's private implementation. This dependency rule includes values as well as imports: shared clients, fixtures, and helpers never hardcode a child's route path, message discriminator, routing key, topology name, or expected literal. Promote only the smallest genuinely shared mechanism to the correct root layer; keep component-owned defaults in the narrow adapter.
 
 This diagram governs test-layer ownership; it does not authorize arbitrary imports from production. Root support may import supported public construction/lifecycle entrypoints such as `create_app(...)`, `create_admin_worker(...)`, or their application-specific equivalents, plus their public interfaces and configuration/composition types. Public production types are allowed only as required arguments/results of those boundaries or as annotations around actual values; they never construct expected values or encode/decode the test oracle. Repository modules may additionally import mapped `Table`/`__table__` metadata solely for SQLAlchemy Core state operations. No test support imports internal handlers, registries, runtime classes, application-state attributes, serializers/deserializers, message/envelope models, routing or task constants, production Publishers/Consumers, or topology helpers to build test inputs or interpret outputs. The storage exception never permits ORM instances or behavior. Third-party protocol/client types remain allowed.
 
@@ -187,6 +187,10 @@ The `database_connection` argument above represents a production-owned compositi
 
 The synthetic ASGI `base_url` never opens a socket. Never start Uvicorn/Gunicorn, bind a port, or call localhost for the application under test.
 
+Apply the same in-process rule to WebSockets. Keep raw ASGI queue/task mechanics in a generic transport module that accepts route and protocol inputs explicitly, then expose component-level handshake/session clients through the owning functional group. Expected pre-upgrade denial is a typed value returned by a handshake probe; do not require `pytest.raises` around an empty `async with ...: pass` block. A live-session context manager may raise a clear adapter exception when a test that requires acceptance is unexpectedly denied.
+
+Every in-process async transport/runner adapter waits on both sides of its completion protocol. When expecting the next frame/event, race that queue read against completion of the application/runner task and propagate the original task exception if it finishes first. Cancel and await only the losing internal wait task during cleanup. Never add a wall-clock timeout to mask missing completion.
+
 ## Worker, job, and consumer composition
 
 Give every non-HTTP runtime one production-owned public composition boundary analogous to `create_app(...)`. The boundary builds the real handler registry, production sessions, broker adapters, and internal runtime from explicit public configuration and injected case resources. Test support may invoke the returned public process-one/handle/run-once capability, but it never assembles the registry or handler graph itself.
@@ -218,6 +222,7 @@ Preserve every bootstrap value needed by a downstream fixture or test consumer. 
 @dataclass(frozen=True, slots=True)
 class AuthorizedContext:
     user: UserRecord
+    session_id: UUID
     credentials: Credentials
 
 
@@ -245,7 +250,7 @@ async def authorized_api_client(_application, _authorized_context):
         yield client
 ```
 
-Pytest caches `_authorized_context` once for the test, so a test requesting both `authorized_api_client` and `authorized_user` receives the same typed user record used to authorize that client with no extra storage call. Apply the same pattern to workers, consumers, admin clients, prepared jobs, tenants, buckets, and similar fixture graphs. Re-read through a repository when a later setup step or the tested operation may have changed persisted state, or when current persisted state is itself the artifact under assertion.
+Pytest caches `_authorized_context` once for the test, so a test requesting the client, user, credentials, or session identifier receives the exact values used during authorization with no extra storage call. Apply the same pattern to workers, consumers, admin clients, prepared jobs, tenants, buckets, and similar fixture graphs. Preserve every stable handle that a later arrange step reasonably needs; never scan a database/cache/index merely to reconstruct one. Re-read through a repository when a later setup step or the tested operation may have changed persisted state, or when current persisted state is itself the artifact under assertion.
 
 Fixture contexts and helper results use named typed fields. Prefer frozen dataclasses or focused DTOs; do not return `dict[str, object]` or positional tuples for internal multi-value results. This context models cohesive preparation and is not a synthetic assertion aggregate. Dictionaries remain correct for natural mapping contracts such as JSON payloads, headers, settings overrides, and raw external wire bodies.
 

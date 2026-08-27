@@ -44,7 +44,9 @@ The enhanced runner invokes Ruff through its supported CLI and parses Ruff JSON.
 
 ## Semantic review
 
-Manual findings never appear in `lint_suite.py`. They remain in the `Semantic review required` section of `audit_suite.py`. `SEM001` is always present; `SEM002` follows focused registry selections; `SEM003` and `SEM004` follow scheduler and worker surfaces. A clean deterministic section does not satisfy these items or prove coverage completeness.
+Manual findings never appear in `lint_suite.py`. They remain in the `Semantic review required` section of `audit_suite.py`. `SEM001` is always present; `SEM002` follows focused registry selections; `SEM003` and `SEM004` follow scheduler and worker surfaces; `SEM005` follows detected WebSocket test support/surfaces. A clean deterministic section does not satisfy these items or prove coverage completeness.
+
+The deterministic checker does not warn merely because a validation matrix with explicit boundaries lacks a randomized ordinary row: deciding whether the field is enum-only requires contract knowledge. Enum matrices intentionally use every allowed member instead. The semantic contract review remains responsible for distinguishing enums from incomplete non-enum matrices.
 
 ## Enhanced discovery
 

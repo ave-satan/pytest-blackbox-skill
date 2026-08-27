@@ -1,6 +1,6 @@
 ---
 name: write
-description: Design and add new black-box pytest contract tests for Python application behavior. Use when the user asks to test or add coverage for an HTTP or JSON-RPC API, job, scheduler, worker, message handler, or observable integration contract. Do not use merely to repair existing failing tests or to perform a read-only review or full audit.
+description: Design and add new black-box pytest contract tests for Python application behavior. Use when the user asks to test or add coverage for an HTTP, JSON-RPC, or WebSocket API, job, scheduler, worker, message handler, or observable integration contract. Do not use merely to repair existing failing tests or to perform a read-only review or full audit.
 ---
 
 # Write Pytest Blackbox Tests

@@ -7,6 +7,18 @@ from pathlib import Path
 from .models import Finding, Policy
 
 
+def _has_websocket_surface(tests_dir: Path) -> bool:
+    for path in tests_dir.rglob("*.py"):
+        if "websocket" in path.name.lower():
+            return True
+        try:
+            if "websocket" in path.read_text(encoding="utf-8").lower():
+                return True
+        except (OSError, UnicodeError):
+            continue
+    return False
+
+
 def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Finding]:
     findings = [
         Finding(
@@ -65,6 +77,24 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
                     "verify selected worker success paths have a positive settlement "
                     "artifact and handler outcome matrices cover preservation/rejection "
                     "branches"
+                ),
+            )
+        )
+    if _has_websocket_surface(tests_dir):
+        findings.append(
+            Finding(
+                path=str(tests_dir.relative_to(root)),
+                line=1,
+                severity="MANUAL",
+                code="SEM005",
+                message=(
+                    "reconcile WebSocket route handshake/lifecycle and every client "
+                    "message discriminator; keep route behavior in a clearly named "
+                    "connection/lifecycle category and command behavior in its own "
+                    "component with categories chosen by behavior; verify "
+                    "natural denial values, required close/non-terminal outcomes, "
+                    "generic transport ownership, and application-task failure "
+                    "propagation without timeout waits"
                 ),
             )
         )

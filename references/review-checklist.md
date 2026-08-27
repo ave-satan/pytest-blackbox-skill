@@ -14,13 +14,15 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 
 - Does each test enter through a supported application/job/worker/message boundary and avoid implementation handlers/state/registries/codecs/constants?
 - Are input/action and expected truth independently expressed rather than built through production DTO/schema/default/validation/serialization?
-- Is every public HTTP/JSON-RPC operation and registered job/scheduler/handler independently covered?
+- Is every public product HTTP/JSON-RPC/WebSocket operation and registered job/scheduler/handler independently covered, while documentation-only endpoints and generated API docs stay outside the contract suite?
 - Was a transient contract-evidence matrix reconciled against collected nodes, including every operation matched by a `focused` rule and every application-owned observable outcome class?
-- Is ordinary HTTP identity method + path and JSON-RPC identity HTTP method + RPC method?
+- Is ordinary HTTP identity method + path, JSON-RPC identity HTTP method + RPC method, and WebSocket identity route lifecycle or route + contractual subprotocol/discriminator?
+- Do WebSocket tests keep handshake denials as values, prove required non-terminal continuation and close outcomes, and propagate unexpected application-task failures without timeout waits?
+- Does the route-level WebSocket component use a clear connection/lifecycle category—preferably `test_connection.py` in the standard layout—while independently invokable message commands choose categories by their own behavior?
 - Does an async-dispatching API test stop at response + queued artifact, leaving execution to a separate worker contract?
 - Are shared worker/runtime contracts tested once and kept distinct from handler contracts?
 - Are non-contract surfaces classified by the generalized registry before scope expands?
-- Is there one primary full contract plus every applicable access/validation/error/business/metrics category?
+- Is there one primary full contract plus every applicable category, with `test_business_logic.py` reserved for actual business behavior and any other cohesive aspect given a concise behavior-specific name?
 - Does each primary contract exact-compare the complete stable public response/value, including unchanged fields returned by partial updates?
 - Does every repeated public invocation cite an explicit authoritative repetition contract rather than infer idempotency/retry from implementation or naming?
 - If scheduler registration is selected, does the test observe the actual registered callback/trigger without a live-clock race?
@@ -38,12 +40,12 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Are separately bound results named `actual`/`actual_*` and expectations `expected`/`expected_*`?
 - Are compound values compared whole and independent observations kept separate without a manufactured aggregate?
 - Does every assertion remain an explicit `assert`, with builders/matchers rather than assertion helpers?
-- Are expected exceptions checked with `pytest.raises`, and unexpected tracebacks preserved?
+- Is `pytest.raises` limited to naturally exception-based public boundaries, with wire errors kept as values and unexpected tracebacks preserved?
 
 ## Validation and performance doubles
 
 - Does validation vary one field at a time, except contractually related fields?
-- Does each field cover an ordinary valid value, valid boundaries, nearest invalid values, representative invalid shapes, every enum member, and an invalid enum member?
+- Do non-enum fields cover an ordinary valid value when appropriate, valid boundaries, nearest invalid values, and representative invalid shapes, while enum fields cover every allowed member plus an invalid member without a redundant randomized row?
 - Does validation assert only acceptance/rejection and validation error rather than repeat downstream business artifacts?
 - If a performance double is used, is it injected through a supported seam, unrelated to the asserted artifact, backed by real-path coverage, semantically removable except for cost, typed/reset, and free of internal call assertions?
 
@@ -53,9 +55,9 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Do local conftests delegate raw SDK topology/runtime/cleanup algorithms to ordinary modules?
 - Are fixture-only dependencies private and absent from test signatures?
 - Are cleanup and ordering explicit, with no meaningless `del` or pass-through fixture aliases?
-- Does shared support avoid imports from narrower/sibling test groups and unsupported production internals?
+- Does shared support avoid imports and hardcoded route/discriminator/topology/expected literals from narrower or sibling test groups and unsupported production internals?
 - Are immutable factories/bootstrap widest-safely-scoped while transactions, actors, credentials, clients, messages, and case state remain function-scoped?
-- Are known prepared entities/credentials reused through typed contexts rather than rediscovered?
+- Are known prepared entities, credentials, identifiers, and resource handles reused through typed contexts rather than rediscovered?
 - Is base configuration immutable/session-scoped and every behavior-affecting case override explicit before startup?
 - Is base configuration recursively immutable or case-derived with a verified deep copy?
 - Do public client/runner fixtures hide raw SDK, runtime, broker topology, Publisher/DeliverySource, and production worker fields behind domain methods?
@@ -71,7 +73,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Was repository minimality checked against the real storage/resource contract, and do file/object `create` methods generate ordinary valid key/body defaults?
 - Does `create_many` build fresh values then execute one bulk write?
 - Do aggregate/domain bulk constructors delegate to bulk primitives instead of looping over single creates?
-- Are repository methods minimal, canonically named, strict about cardinality, and filterless by default in a clean case?
+- Are repository methods minimal, canonically named, strict about cardinality, filterless by default in a clean case, and owned by the state they mutate rather than a neighboring state used to rediscover its identifier?
 - Does coherent multi-store work live in a narrow aggregate repository, while queues use Publishers/Collectors?
 - Are independently meaningful existence states separate domain methods?
 - Do structured reusable results cross support boundaries as typed immutable values, while natural JSON/mapping/scalars remain natural?

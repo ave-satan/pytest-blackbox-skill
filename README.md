@@ -6,9 +6,9 @@ Black-box pytest contract testing workflows for Codex and Claude Code.
 
 Pytest Blackbox helps coding agents discover, lint, write, repair, review,
 upgrade, and audit Python contract tests through public application boundaries.
-It is designed for HTTP and JSON-RPC APIs, jobs, schedulers, workers, message
-handlers, databases, caches, object stores, brokers, and outbound HTTP
-integrations.
+It is designed for HTTP, JSON-RPC, and WebSocket APIs, jobs, schedulers,
+workers, message handlers, databases, caches, object stores, brokers, and
+outbound HTTP integrations.
 
 > **Status:** early release, distributed directly from GitHub. Publication in
 > public plugin directories is deferred.

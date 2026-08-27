@@ -39,14 +39,14 @@ generators_backend = "faker"
 
 Meaning:
 
-- `layout`: `standard` uses the predefined functional/area/operation hierarchy and category filenames; `preserve` adapts to a coherent mature layout.
+- `layout`: `standard` uses the predefined functional/area/operation hierarchy, common category semantics, and concise behavior-specific filenames where the common categories do not fit; `preserve` adapts to a coherent mature layout.
 - `prefer_test_classes`: recommend TestClass grouping when several complete cases can reuse expensive preparation safely. It never permits splitting one case across methods.
 - `infrastructure`: `existing-services`, `embedded`, or an established project-owned provider such as explicitly selected `testcontainers`. Every choice must remain protocol-compatible and create isolated logical resources. This choice provisions internal dependencies and is independent from external mock servers.
 - `compose_lifecycle`: `disabled` by default; `enabled` preserves a consciously selected project-owned Compose lifecycle. This setting concerns Compose only and does not block Testcontainers.
 - `external_services`: `intercept` by default; `testcontainers` uses containerized external mock servers; `mixed` assigns either backend to different external integrations when one backend is not suitable for all of them. Every mode exposes the same test-owned domain Service interface and is independent from the internal-infrastructure provider. In `mixed` mode the assignment is stable per domain integration across the suite, never selected per test case.
 - `generators_backend`: `faker` by default or another confirmed generated-data backend hidden behind the project facade.
 
-Do not configure invariant behavior such as black-box boundaries, one tested invocation, no sleeping, real time bounds, in-process HTTP, transaction rollback, or fixture privacy. Do not configure individual fixture names, support module names, category filename aliases, operation-specific exceptions, or a per-Service backend map. Mixed external-service routing belongs to coherent fixture composition and stays stable per external integration.
+Do not configure invariant behavior such as black-box boundaries, one tested invocation, no sleeping, real time bounds, in-process HTTP, transaction rollback, or fixture privacy. Do not configure individual fixture names, support module names, category filename aliases, operation-specific exceptions, or a per-Service backend map. Category names derive from the tested public behavior rather than project configuration. Mixed external-service routing belongs to coherent fixture composition and stays stable per external integration.
 
 The generator facade defaults to `tests.generators`. Preserve a mature project's coherent existing facade instead of adding a configuration key just to rename it.
 
@@ -73,9 +73,11 @@ When the key is absent, dependency management is inactive: do not modify depende
 
 ## Coverage registry
 
-Public HTTP/JSON-RPC operations and registered jobs, schedulers, and incoming-message handlers are always contract-bearing and always covered. Never add them to the registry and never request permission to omit them. A worker's registered handlers are covered this way; generic dispatch/acknowledgement/requeue/runtime mechanics are a separate non-contract surface unless intentionally selected.
+Public product HTTP/JSON-RPC/WebSocket operations and registered jobs, schedulers, and incoming-message handlers are always contract-bearing and always covered. Never add them to the registry and never request permission to omit them. A worker's registered handlers are covered this way; generic dispatch/acknowledgement/requeue/runtime mechanics are a separate non-contract surface unless intentionally selected.
 
-The registry contains decisions only for generalized classes of non-contract or ambiguous surfaces:
+Documentation-only endpoints, generated OpenAPI/Swagger/schema output, and documentation UIs are excluded without a registry entry: they accompany functional contracts but do not create them. Do not snapshot or test them through this suite. An endpoint that performs product behavior is not documentation-only merely because it is described in OpenAPI.
+
+The registry contains decisions only for generalized classes of non-contract or ambiguous surfaces. The entries below are illustrative examples, not defaults to copy into every project:
 
 ```toml
 [[tool.pytest-blackbox.coverage]]
@@ -87,6 +89,11 @@ rationale = "Operational status mapping only"
 selector = "developer-debug-surfaces"
 decision = "exclude"
 rationale = "Not shipped in supported environments"
+
+[[tool.pytest-blackbox.coverage]]
+selector = "observability-bootstrap"
+decision = "exclude"
+rationale = "No separately selected application-owned runtime contract"
 ```
 
 Allowed decisions are `exclude`, `focused`, and `standard`. A selector describes a surface class, namespace, visibility class, or operational role. Do not record HTTP method/path pairs, JSON-RPC method names, individual job names, or handler identifiers; that becomes per-operation micromanagement.
