@@ -42,9 +42,18 @@ Ruff owns only compatible first-party syntax and pytest rules plus explicit bann
 
 The enhanced runner invokes Ruff through its supported CLI and parses Ruff JSON. It does not patch Ruff, use internal Rust crates, or replace the project's ordinary Ruff configuration. The project's own `ruff check` remains a separate normal project check.
 
+Pytest Blackbox keeps deterministic cross-file/fixture rules in its own Ruff-like checker. In particular:
+
+- `DEP001` rejects an import from broad or sibling test support into a narrower `test_*` group;
+- `FIX005` rejects direct repository state mutation inside a public capability fixture such as a client, transport, worker, runner, publisher, collector, scheduler, or job fixture. Baseline creation moves to a private cohesive context; special transitions stay visible in test arrange.
+
+These diagnostics intentionally prove only the visible structural violation. They do not replace semantic review of protocol type minimality, fixture naming, or whether an apparently baseline state is actually scenario-specific.
+
 ## Semantic review
 
-Manual findings never appear in `lint_suite.py`. They remain in the `Semantic review required` section of `audit_suite.py`. `SEM001` is always present; `SEM002` follows focused registry selections; `SEM003` and `SEM004` follow scheduler and worker surfaces; `SEM005` follows detected WebSocket test support/surfaces. A clean deterministic section does not satisfy these items or prove coverage completeness.
+Manual findings never appear in `lint_suite.py`. They remain in the `Semantic review required` section of `audit_suite.py`. `SEM001` always requires the complete operation/evidence matrix; `SEM006` always requires a separate semantic scenario/outcome completeness pass over authoritative requirements and application-owned source behavior. `SEM002` follows focused registry selections; `SEM003` and `SEM004` follow scheduler and worker surfaces; `SEM005` follows detected WebSocket test support/surfaces and includes current-contract-only outcome projections plus Transport/Connection/Client ownership; `SEM007` appears only when `test_concurrency = true`. A clean deterministic section does not satisfy these items or prove coverage completeness.
+
+Neither bundled check imports project code, collects pytest, executes tests, or runs the project's own lint/type commands. The `audit` workflow invokes those separately when the environment and audit scope allow them; their results are evidence reconciled alongside, not hidden inside, `audit_suite.py`.
 
 The deterministic checker does not warn merely because a validation matrix with explicit boundaries lacks a randomized ordinary row: deciding whether the field is enum-only requires contract knowledge. Enum matrices intentionally use every allowed member instead. The semantic contract review remains responsible for distinguishing enums from incomplete non-enum matrices.
 

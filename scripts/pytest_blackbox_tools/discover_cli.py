@@ -35,24 +35,31 @@ def _dependency_opt_in(result: dict[str, Any]) -> bool:
 
 
 def discover(root: Path, requested_mode: str) -> tuple[dict[str, Any], int]:
+    if not root.is_dir():
+        return {
+            "project_root": str(root),
+            "analysis_mode": "fallback",
+            "root_error": "project root does not exist or is not a directory",
+        }, 2
     result = fallback_discover.discover(root)
     status = toolchain_status()
     dependency_opt_in = _dependency_opt_in(result)
     use_enhanced = dependency_opt_in and (
         requested_mode == "enhanced" or (requested_mode == "auto" and status.complete)
     )
-    exit_code = 0
+    exit_code = 2 if result.get("pyproject_error") or result.get("policy_errors") else 0
     if requested_mode == "enhanced" and not dependency_opt_in:
         result["enhanced_error"] = (
             "dependency_group is not enabled; enhanced mode requires onboarding opt-in"
         )
-        exit_code = 2
+        exit_code = max(exit_code, 2)
     elif dependency_opt_in and not status.complete:
         result["enhanced_error"] = "missing enhanced dependencies: " + ", ".join(
             status.missing
         )
         use_enhanced = False
-        exit_code = 2 if requested_mode == "enhanced" else 0
+        if requested_mode == "enhanced":
+            exit_code = max(exit_code, 2)
     if use_enhanced:
         from .enhanced_discover import enhance
 
@@ -67,6 +74,8 @@ def discover(root: Path, requested_mode: str) -> tuple[dict[str, Any], int]:
 
 
 def _render_text(result: dict[str, Any]) -> str:
+    if result.get("root_error"):
+        return f"Project: {result['project_root']}\nRoot error: {result['root_error']}"
     lines = [
         f"Project: {result['project_root']}",
         f"Pyproject: {result['pyproject'] or 'not found'}",
@@ -74,6 +83,9 @@ def _render_text(result: dict[str, Any]) -> str:
     ]
     if result.get("pyproject_error"):
         lines.append(f"Pyproject error: {result['pyproject_error']}")
+    if result.get("policy_errors"):
+        lines.append("Policy errors:")
+        lines.extend(f"  - {item}" for item in result["policy_errors"])
     if result.get("enhanced_error"):
         lines.append(f"Enhanced discovery unavailable: {result['enhanced_error']}")
     if result["nested_pyprojects"]:
@@ -83,10 +95,21 @@ def _render_text(result: dict[str, Any]) -> str:
         [
             "\nObserved facts:",
             json.dumps(result["facts"], indent=2, sort_keys=True),
-            "\nProposed patch (review and confirm before writing):",
-            fallback_discover.toml_proposal(result["proposal"]),
         ]
     )
+    proposal = result.get("proposal")
+    if isinstance(proposal, dict):
+        lines.extend(
+            [
+                "\nProposed patch (review and confirm before writing):",
+                fallback_discover.toml_proposal(proposal),
+            ]
+        )
+    else:
+        lines.append(
+            "\nProposed patch unavailable: fix the listed policy errors first; "
+            "discovery will not replace valid recorded choices with defaults."
+        )
     managed = result["optional_capabilities"]["managed_dependencies"]
     state = "enabled" if managed["enabled"] else "disabled until confirmed"
     lines.extend(

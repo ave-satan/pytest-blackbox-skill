@@ -42,6 +42,8 @@ terminal operation/component
 
 Narrower code may import broader code. Broader layers never import `tests/test_*/`; groups never import narrower components; siblings never import each other's private implementation. This dependency rule includes values as well as imports: shared clients, fixtures, and helpers never hardcode a child's route path, message discriminator, routing key, topology name, or expected literal. Promote only the smallest genuinely shared mechanism to the correct root layer; keep component-owned defaults in the narrow adapter.
 
+Apply the same direction to fixture composition. A broad surface `conftest.py` may expose generic mechanisms owned by that surface, but it never imports a functional adapter from a narrower `test_*` component merely to construct a child-specific fixture. Move that fixture to the narrowest common owning `conftest.py`. A child may depend on a broader private application/transport/context fixture; the reverse dependency is forbidden.
+
 This diagram governs test-layer ownership; it does not authorize arbitrary imports from production. Root support may import supported public construction/lifecycle entrypoints such as `create_app(...)`, `create_admin_worker(...)`, or their application-specific equivalents, plus their public interfaces and configuration/composition types. Public production types are allowed only as required arguments/results of those boundaries or as annotations around actual values; they never construct expected values or encode/decode the test oracle. Repository modules may additionally import mapped `Table`/`__table__` metadata solely for SQLAlchemy Core state operations. No test support imports internal handlers, registries, runtime classes, application-state attributes, serializers/deserializers, message/envelope models, routing or task constants, production Publishers/Consumers, or topology helpers to build test inputs or interpret outputs. The storage exception never permits ORM instances or behavior. Third-party protocol/client types remain allowed.
 
 ## Conftest and fixture visibility
@@ -66,6 +68,25 @@ Fixture names form a public test API:
 - public only when requested directly by a test or `usefixtures`;
 - `_`-prefixed when consumed only by fixtures, bootstrap, teardown, ordering, or autouse behavior;
 - test function signatures never contain `_fixture` arguments.
+
+Name a public fixture after the capability it actually returns. A functional `ChatWebSocketClient` is exposed as `chat_websocket_client`, not the deceptively generic `websocket_client`; reserve a generic fixture name for a genuinely generic transport/mechanism. Authorization or another stable baseline may be expressed by a concise qualifier such as `authorized_chat_websocket_client`.
+
+A public capability fixture—client, transport, connection, worker, runner, publisher, collector, scheduler, or prepared job—composes stable machinery plus the baseline identity/context required to use it, but never mutates a repository directly. Put baseline actor/session/resource creation in one private cohesive typed context and inject its known values into the public fixture. Arrange a case-specific state such as revoked, expired, deleted, pending, blocked, or otherwise exceptional visibly in the test through a semantic method on the owning repository and a stable identifier already returned by that context:
+
+```python
+async def test_revoked(
+    authorized_chat_websocket_client,
+    authorized_session_id,
+    session_repository,
+):
+    await session_repository.revoke(authorized_session_id)
+
+    actual_handshake = await authorized_chat_websocket_client.handshake()
+
+    assert actual_handshake == DeniedHandshake(...)
+```
+
+A private cohesive context may create baseline actors, credentials, and sessions once for the case and project those known values into multiple fixtures. That is baseline preparation, not permission to hide a scenario transition in a named client fixture. When an intentionally grouped expensive case uses a class arrange/invocation fixture, the special transition remains explicit in that fixture's arrange phase rather than becoming a client variant.
 
 Do not forward a private fixture through a test-local helper. Expose one purposeful public repository/client/Service/Publisher/Collector fixture instead.
 
@@ -122,6 +143,14 @@ Give application lifecycle, surface HTTP mechanics, and pytest composition one o
 - `tests/fixtures/application.py`: generic application construction, production-owned infrastructure composition, and lifespan; no HTTP transport or authorization details;
 - `tests/test_<surface>/client.py`: transport, client/wrapper types, base URL, headers/cookies/tokens, open/close functions; no pytest fixtures, DB setup, dependency overrides, or lifespan;
 - `tests/test_<surface>/conftest.py`: fixture declarations and dependency composition only.
+
+Use role-specific names when a protocol has multiple layers:
+
+- `...Transport` owns generic in-process protocol/SDK mechanics and accepts component-owned paths, discriminators, or other current contract values explicitly;
+- `...Connection` represents one accepted live protocol session;
+- `...Client` exposes functional/domain operations for one owning component.
+
+Do not stack two unrelated `...Client` abstractions and then expose the narrower one under a generic fixture name. Keep the transport broad, the functional client narrow, and compose them in the owning ordinary client/factory module; `conftest.py` only binds their fixture dependencies.
 
 With `layout = "preserve"`, retain an equivalent coherent separation in the mature suite. Do not make filenames configurable or perform a broad move without explicit authorization. A performance double may be supplied by fixture composition only through the supported application seam and only under the contracts reference conditions.
 
@@ -185,6 +214,8 @@ Use distinct unauthorized and authorized client instances over the same applicat
 
 The `database_connection` argument above represents a production-owned composition hook; use the application's supported equivalent. It accepts or binds the outer `Connection`/`AsyncConnection` matching the project's concurrency model, while production code internally creates and uses its normal ORM sessions on that connection. Test functions and all test support never import, request, construct, configure, or operate SQLAlchemy `Session`/`AsyncSession` objects or session factories. If the application lacks this boundary, report the blocker and request separate authorization to add/refactor a general production seam; never define a test-only ORM provider. Repositories and other test-owned database preparation use the connection directly with SQLAlchemy Core statement APIs.
 
+For an explicitly enabled concurrency contract, do not bind participants to that ordinary outer connection. A private concurrency environment fixture gives each production-composed participant its own normal committing connection and supplies separately named typed concurrency repositories for committed arrange/read/cleanup operations. Tests receive only those purposeful repositories and public clients, never engines, connection factories, transactions, or ORM sessions. All ordinary fixtures keep the shared rollback binding.
+
 The synthetic ASGI `base_url` never opens a socket. Never start Uvicorn/Gunicorn, bind a port, or call localhost for the application under test.
 
 Apply the same in-process rule to WebSockets. Keep raw ASGI queue/task mechanics in a generic transport module that accepts route and protocol inputs explicitly, then expose component-level handshake/session clients through the owning functional group. Expected pre-upgrade denial is a typed value returned by a handshake probe; do not require `pytest.raises` around an empty `async with ...: pass` block. A live-session context manager may raise a clear adapter exception when a test that requires acceptance is unexpectedly denied.
@@ -232,8 +263,12 @@ async def _authorized_context(
     session_repository,
 ) -> AuthorizedContext:
     user = await user_repository.create()
-    credentials = await session_repository.create_credentials(user)
-    return AuthorizedContext(user=user, credentials=credentials)
+    authorization = await session_repository.create_authorization(user)
+    return AuthorizedContext(
+        user=user,
+        session_id=authorization.session_id,
+        credentials=authorization.credentials,
+    )
 
 
 @pytest.fixture(scope="function")

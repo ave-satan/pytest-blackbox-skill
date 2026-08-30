@@ -23,9 +23,7 @@ ENHANCED_REQUIREMENTS = (
     "tomli>=2; python_version < '3.11'",
 )
 
-BASELINE_DISTRIBUTIONS = frozenset(
-    {"packaging", "pathspec", "ruff", "tomli", "tomlkit"}
-)
+BASELINE_DISTRIBUTIONS = frozenset(ENHANCED_DEPENDENCIES)
 
 
 @dataclass(frozen=True)

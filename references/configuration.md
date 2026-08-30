@@ -31,6 +31,7 @@ Recommended new-project defaults:
 config_version = 1
 layout = "standard"
 prefer_test_classes = true
+test_concurrency = false
 infrastructure = "existing-services"
 compose_lifecycle = "disabled"
 external_services = "intercept"
@@ -41,12 +42,15 @@ Meaning:
 
 - `layout`: `standard` uses the predefined functional/area/operation hierarchy, common category semantics, and concise behavior-specific filenames where the common categories do not fit; `preserve` adapts to a coherent mature layout.
 - `prefer_test_classes`: recommend TestClass grouping when several complete cases can reuse expensive preparation safely. It never permits splitting one case across methods.
+- `test_concurrency`: `false` by default. When false, concurrent-execution guarantees are outside the suite's completeness boundary even if requirements mention them; sequential functional outcomes remain mandatory. Set it to `true` only by an explicit project choice, then test authoritative concurrency guarantees through independently committing application transactions.
 - `infrastructure`: `existing-services`, `embedded`, or an established project-owned provider such as explicitly selected `testcontainers`. Every choice must remain protocol-compatible and create isolated logical resources. This choice provisions internal dependencies and is independent from external mock servers.
 - `compose_lifecycle`: `disabled` by default; `enabled` preserves a consciously selected project-owned Compose lifecycle. This setting concerns Compose only and does not block Testcontainers.
 - `external_services`: `intercept` by default; `testcontainers` uses containerized external mock servers; `mixed` assigns either backend to different external integrations when one backend is not suitable for all of them. Every mode exposes the same test-owned domain Service interface and is independent from the internal-infrastructure provider. In `mixed` mode the assignment is stable per domain integration across the suite, never selected per test case.
 - `generators_backend`: `faker` by default or another confirmed generated-data backend hidden behind the project facade.
 
-Do not configure invariant behavior such as black-box boundaries, one tested invocation, no sleeping, real time bounds, in-process HTTP, transaction rollback, or fixture privacy. Do not configure individual fixture names, support module names, category filename aliases, operation-specific exceptions, or a per-Service backend map. Category names derive from the tested public behavior rather than project configuration. Mixed external-service routing belongs to coherent fixture composition and stays stable per external integration.
+Do not configure invariant behavior such as black-box boundaries, one tested invocation outside explicit repetition contracts, no sleeping, real time bounds, in-process HTTP, ordinary-case transaction rollback outside the explicit concurrency carve-out, or fixture privacy. Do not configure individual fixture names, support module names, category filename aliases, operation-specific exceptions, or a per-Service backend map. Category names derive from the tested public behavior rather than project configuration. Mixed external-service routing belongs to coherent fixture composition and stays stable per external integration.
+
+The policy table is strict: unknown keys are configuration errors rather than ignored extensions. This keeps misspellings such as `test_concurency` from silently selecting a default. Add new keys only with a supported plugin/configuration version; ordinary tool-specific tables elsewhere in `pyproject.toml` are unaffected.
 
 The generator facade defaults to `tests.generators`. Preserve a mature project's coherent existing facade instead of adding a configuration key just to rename it.
 
@@ -123,7 +127,7 @@ Discovery reports existing named dependency groups and proposes `dependency_grou
 
 The bundled scanner skips common secret-bearing Python filenames such as `credentials.py`, `secrets.py`, `tokens.py`, `keys.py`, and `private_keys.py`; it never prints source contents. If a project uses another sensitive naming convention, exclude that location from the scan or inspect it manually rather than broadening automated reads.
 
-Treat output as evidence and a proposal, not authority. Show ambiguous facts and confidence. Ask only about material choices that cannot be inferred safely, then show the exact patch. Because stdlib `tomllib` is read-only, let the agent apply the confirmed minimal patch so existing formatting and comments remain intact.
+Treat output as evidence and a proposal, not authority. Show ambiguous facts and confidence. Ask only about material choices that cannot be inferred safely, then show the exact patch. When the existing policy is invalid, fail closed and withhold a replacement proposal until the listed errors are repaired; never reset unrelated valid choices to defaults. Because stdlib `tomllib` is read-only, let the agent apply the confirmed minimal patch so existing formatting and comments remain intact.
 
 If no `pyproject.toml` exists, offer either a minimal new file or temporary confirmed settings for the task. Never silently create the file.
 
@@ -140,6 +144,7 @@ Audit output has two deliberately separate sections:
 Examples:
 
 - `prefer_test_classes = true` plus repeated expensive preparation may produce a warning because the opportunity is heuristic.
+- `test_concurrency = true` requires semantic evidence that explicitly promised races use independently committing application transactions; `false` excludes concurrent execution from scenario completeness and produces no missing-concurrency finding.
 - `external_services = "intercept"` plus confirmed Testcontainers mock-server code is configuration-drift error; `external_services = "mixed"` intentionally permits both external backends.
 - A production-independent oracle remains manual review; AST similarity cannot prove semantic independence reliably.
 - An absent `dependency_group` produces no dependency-management finding. A present but empty or general-purpose destination is configuration error; whether a custom group is genuinely dedicated remains manual review.

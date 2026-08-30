@@ -3,6 +3,7 @@
 ## Contents
 
 - [Scope and invocation](#scope-and-invocation)
+- [Idempotency contracts](#idempotency-contracts)
 - [WebSocket contracts](#websocket-contracts)
 - [Performance doubles](#performance-doubles)
 - [Test shape and assertions](#test-shape-and-assertions)
@@ -26,11 +27,26 @@ An ordinary test performs exactly one public invocation:
 - one scheduler/worker-facing job invocation;
 - one incoming-message publication through the real test broker path.
 
-Fixture setup, repository arrange/inspection, external Service planning, application lifespan, and deterministic completion synchronization are not application invocations. Repeat the operation only when an authoritative public contract explicitly requires repetition—idempotency, replay, duplicate delivery, retry, or concurrency—and make the minimum calls needed. A method name, implementation branch, existing test name, or intuitively desirable property does not establish that contract. During review, list every multi-invocation case and the source of its promise; remove or request a product decision for unsupported repetitions.
+Fixture setup, repository arrange/inspection, external Service planning, application lifespan, and deterministic completion synchronization are not application invocations. Repeat the operation only when an authoritative public contract explicitly requires repetition—idempotency, replay, duplicate delivery, or retry—and make the minimum calls needed. Concurrency additionally requires the active project choice `test_concurrency = true`. A method name, implementation branch, existing test name, or intuitively desirable property does not establish that contract. During review, list every multi-invocation case and the source of its promise; remove or request a product decision for unsupported repetitions.
 
 Do not call registration/login/another endpoint, a preparatory job, or an unrelated message to arrange state. Trust neighboring application contracts and prebuild prerequisites with repositories, fixtures, configuration, payload builders, and Services.
 
 When an API dispatches asynchronous work, its direct contract ends at the exact queued message/task plus the synchronous response. Do not run the worker from the API test to prove the final state. Give the worker/job/handler its own contract test through its own public invocation boundary.
+
+## Idempotency contracts
+
+Idempotency is an explicit repetition contract, never a default quality assumption. Test it only when an authoritative product or wire contract names the operation identity and promises a repeated-call or duplicate-delivery outcome. Do not infer it from an implementation guard, unique constraint, deterministic task ID, retry-capable dependency, or a test name.
+
+Use the smallest complete sequence—normally exactly two invocations—and keep it in one case:
+
+1. arrange one initial state and bind the exact contractual idempotency identity/key;
+2. invoke once and observe the normal complete response plus direct artifacts;
+3. invoke again with the same contractual identity and the payload relation promised by the contract;
+4. assert the promised second terminal response/settlement and exact artifact cardinality/state after both calls.
+
+Prove absence of duplicate effects positively: exact row/message/object/ledger counts, unchanged versions/balances, or the natural equivalent. An equal second response or an empty dead-letter queue alone does not prove idempotency. For duplicate message delivery, prove both deliveries settle according to policy and the handler-owned artifact occurs once. Do not add sleeps, concurrency, retries, or a third call unless the contract distinguishes another phase.
+
+If the contract defines changed-payload reuse, in-flight replay, failure consumption, retryable failure, expiry, or an idempotency window, give each distinct promised outcome its own parameter row/case. Otherwise do not invent those variants. Keep a cohesive idempotency contract in `test_idempotency.py`; do not hide it in generic business logic or split the first and repeated observations across tests.
 
 ## WebSocket contracts
 
@@ -47,15 +63,23 @@ Preserve natural wire semantics in test support. A pre-upgrade HTTP denial is a 
 
 ```python
 @dataclass(frozen=True, slots=True)
-class HandshakeDenied:
+class AcceptedHandshake:
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class DeniedHandshake:
     status_code: int
     body: object
+
+
+HandshakeOutcome = AcceptedHandshake | DeniedHandshake
 
 
 async def test_unauthenticated(websocket_client):
     actual_handshake = await websocket_client.handshake(PATH)
 
-    assert actual_handshake == HandshakeDenied(
+    assert actual_handshake == DeniedHandshake(
         status_code=401,
         body={
             "error": {
@@ -68,7 +92,9 @@ async def test_unauthenticated(websocket_client):
     )
 ```
 
-The generic transport accepts the path, subprotocol, and other component-owned protocol values explicitly. Put defaults and domain conveniences in the owning functional adapter; never hardcode a child route or message discriminator in root/shared transport support.
+Test-owned outcome types contain exactly the fields the current public boundary promises and the tests consume. When acceptance carries no contractual data, use a zero-field immutable marker instead of a nullable placeholder such as `subprotocol: str | None`. Add a negotiated subprotocol, headers, identifiers, or other metadata only when the current application contract exposes it. Model mutually exclusive shapes as separate frozen variants plus a union alias rather than one nullable bag; the alias is not a third runtime class. Prefer readable outcome-first names such as `AcceptedHandshake`, `DeniedHandshake`, and `HandshakeOutcome`.
+
+Use distinct role names across layers: a generic `...Transport` owns in-process SDK/protocol mechanics, an accepted `...Connection` owns one live session, and a functional `...Client` owns domain commands and defaults. The generic transport accepts only currently supported component-owned protocol values explicitly. Put route, discriminator, and domain conveniences in the owning narrow adapter; never hardcode a child contract in root/shared transport support or import that adapter back into a broader group fixture.
 
 An in-process async adapter must not wait only on an output queue. Race the next protocol event against the application/runner task with deterministic `FIRST_COMPLETED` semantics and re-raise the task's original exception if it finishes first. This is completion signaling, not a wall-clock timeout; do not add sleeps or timeout-based polling.
 
@@ -211,7 +237,7 @@ For each field include:
 3. the nearest representable invalid value immediately outside each boundary;
 4. representative invalid shapes/values required by the contract.
 
-For an enumeration, test every allowed member and at least one disallowed member instead of one randomized success.
+For an enumeration or registered discriminator, test every publicly allowed member and at least one disallowed member instead of one randomized success. This public member set takes precedence over a broader transport/schema representation: do not invent a successful minimum/maximum string row when routing or dispatch correctly rejects every unregistered value. Keep the nearest invalid representation boundaries only when they remain useful acceptance/rejection evidence.
 
 Keep acceptance and errors in one parametrization. Parameterize the complete expected observation so test control flow does not decode a scenario:
 
@@ -267,6 +293,8 @@ When a valid row would trigger unrelated expensive work, a performance double ma
 Inventory depth follows the task. A focused change inspects its relevant surface; a full coverage review discovers the complete registered/reachable surface—including mounted, hidden-from-schema, feature-gated, operational, job, scheduler, worker, and message-handler entries—before claiming completeness.
 
 Turn that inventory into a transient contract-evidence matrix before declaring the suite complete. For every discovered operation record its stable public identity, applicable generalized registry rule and depth, terminal test component, primary contract node, applicable categories, and application-owned observable outcome classes. Build outcome classes from public contracts plus implementation inspection (for example accepted, rejected, preserved, dispatched, registered, acknowledged, or dead-lettered), but assert only public responses/direct artifacts rather than internal branches. Every outcome maps to a test node or a documented scope decision. The matrix is audit evidence, not persistent micromanagement: never copy public operations into `pyproject.toml` or maintain a per-operation registry.
+
+Operation presence and a `test_contract` node prove only census completeness. Scenario completeness is a separate semantic pass: inspect authoritative functional requirements together with application-owned source branches and partitions, then enumerate every distinct public outcome, meaningful state partition, isolation dimension, contractual boundary, and direct artifact. Map every public-contract item to an actually collected case. Generalized policy decisions may scope only non-contract surfaces and the recorded concurrency boundary; they never exempt public or registered contracts. Collapse implementation branches only when they are observationally identical at the public boundary; never omit a promised outcome merely because another case executes nearby code.
 
 A `focused` generalized registry rule still requires enumerating the complete matching surface before selecting the promised depth. It is not permission to sample a convenient subset silently. Report which applicable aspects are covered for every matching operation and which generalized policy excludes the rest.
 
@@ -328,7 +356,8 @@ The hierarchy and common category meanings are an adaptive default, not a reason
 
 Choose every category filename by the public behavior it groups. The primary contract is not automatically business logic and belongs in the category that accurately names what it proves:
 
-- business rules, domain outcomes, state transitions, idempotency, retry, and business/config variants in `test_business_logic.py`;
+- business rules, domain outcomes, state transitions, retry, and business/config variants in `test_business_logic.py`;
+- an explicitly promised repeated-operation contract in `test_idempotency.py`;
 - unauthenticated rejection and authorized access in `test_access.py` when protected;
 - every public input in `test_validation.py`;
 - application-owned failures in `test_errors.py`;
@@ -351,7 +380,9 @@ Give each such component its own applicable errors, business rules, artifacts, c
 
 Separate shared worker/runtime contracts from handler contracts. Cross-cutting dispatch, envelope rejection, acknowledgement/requeue/dead-letter policy, and unknown-message behavior belong to one dedicated worker/runtime component only when that worker boundary is itself selected for coverage. Each handler component tests only handler-specific input, application-owned errors/business rules, and direct artifacts; it does not repeat generic runtime cases. Conversely, a shared worker/runtime contract never substitutes for a handler's own `test_contract`. If runtime mechanics are not in the public contract, observe only the handler's public outcome unless the user explicitly opts into additional focused coverage.
 
-When scheduler registration is selected, prove the actual framework registration: observe the callback and trigger registered through the supported scheduler composition/inspection boundary. Manually calling a wrapper plus comparing a separately maintained schedule DTO does not protect `add_job(...)`, callback wiring, or trigger configuration. Keep this deterministic; do not start a live clock-driven scheduler merely to invoke the callback manually, because a background tick creates a second-invocation race.
+When worker runtime or registration is selected, put the actual broker/consumer composition contract in `test_topology.py`. Observe the production declaration/registration path and verify only application-owned choices such as exchange/topic and queue/subscription identity, binding/routing, dead-letter policy, durability/auto-delete settings, QoS/prefetch, and handler/discriminator registration when they are part of the selected contract. Do not test broker reliability or reimplement production topology through a parallel test DTO/helper. Keep the check deterministic: use a supported composition/start seam that returns after registration, inspect its natural broker/framework artifacts, and close it immediately without live waiting, timeout polling, or message-processing assertions. Settlement policy remains in its own behavior category and every handler keeps its own component.
+
+For every registered scheduler, prove the actual framework registration: observe the callback and trigger registered through the supported scheduler composition/inspection boundary. Manually calling a wrapper plus comparing a separately maintained schedule DTO does not protect `add_job(...)`, callback wiring, or trigger configuration. Keep this deterministic; do not start a live clock-driven scheduler merely to invoke the callback manually, because a background tick creates a second-invocation race.
 
 When worker settlement is selected, every terminal policy needs a positive deterministic artifact. Success must prove acknowledgement/settlement (or equivalent non-redelivery state); an empty rejected/dead-letter queue alone is insufficient because an unacknowledged in-flight delivery produces the same absence. Expose the smallest typed test-owned projection supported by the broker/runtime boundary and keep raw delivery objects private.
 

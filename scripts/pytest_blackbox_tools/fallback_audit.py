@@ -33,11 +33,288 @@ def dotted_name(node: ast.AST) -> str | None:
     return None
 
 
+def import_aliases(tree: ast.Module) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            for imported in node.names:
+                local = imported.asname or imported.name.split(".", 1)[0]
+                aliases[local] = imported.name if imported.asname else local
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            for imported in node.names:
+                if imported.name == "*":
+                    continue
+                local = imported.asname or imported.name
+                aliases[local] = f"{node.module}.{imported.name}"
+    return aliases
+
+
+def resolved_dotted_name(node: ast.AST, aliases: dict[str, str]) -> str | None:
+    name = dotted_name(node)
+    if not name:
+        return None
+    root, separator, remainder = name.partition(".")
+    resolved_root = aliases.get(root, root)
+    return f"{resolved_root}.{remainder}" if separator else resolved_root
+
+
+class _ScopeSymbols(ast.NodeVisitor):
+    def __init__(self) -> None:
+        self.aliases: dict[str, str] = {}
+        self.bound: set[str] = set()
+
+    def visit_Import(self, node: ast.Import) -> None:
+        for imported in node.names:
+            local = imported.asname or imported.name.split(".", 1)[0]
+            self.aliases[local] = imported.name if imported.asname else local
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        if node.level != 0 or not node.module:
+            return
+        for imported in node.names:
+            if imported.name != "*":
+                self.aliases[imported.asname or imported.name] = (
+                    f"{node.module}.{imported.name}"
+                )
+
+    def visit_Name(self, node: ast.Name) -> None:
+        if isinstance(node.ctx, ast.Store):
+            self.bound.add(node.id)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self.bound.add(node.name)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self.bound.add(node.name)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        self.bound.add(node.name)
+
+    def visit_Lambda(self, node: ast.Lambda) -> None:
+        return None
+
+
+def function_aliases(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    inherited: dict[str, str],
+) -> dict[str, str]:
+    symbols = _ScopeSymbols()
+    for statement in node.body:
+        symbols.visit(statement)
+    bound = symbols.bound | function_args(node)
+    aliases = {
+        name: target
+        for name, target in inherited.items()
+        if name not in bound or name in symbols.aliases
+    }
+    aliases.update(symbols.aliases)
+    return aliases
+
+
+class _ResolvedCallVisitor(ast.NodeVisitor):
+    def __init__(self, aliases: dict[str, str]) -> None:
+        self.aliases = aliases
+        self.names: dict[int, str] = {}
+
+    def visit_Call(self, node: ast.Call) -> None:
+        self.names[id(node)] = resolved_dotted_name(node.func, self.aliases) or ""
+        self.generic_visit(node)
+
+    def _visit_function(
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+    ) -> None:
+        parent_aliases = self.aliases
+        self.aliases = function_aliases(node, parent_aliases)
+        for statement in node.body:
+            self.visit(statement)
+        self.aliases = parent_aliases
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._visit_function(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._visit_function(node)
+
+
+def resolved_call_names(tree: ast.Module) -> dict[int, str]:
+    visitor = _ResolvedCallVisitor(import_aliases(tree))
+    visitor.visit(tree)
+    return visitor.names
+
+
 def function_args(node: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
     positional = [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]
     return {
         argument.arg for argument in positional if argument.arg not in {"self", "cls"}
     }
+
+
+def source_test_owner(path: Path, tests_dir: Path) -> tuple[str, ...]:
+    relative = path.relative_to(tests_dir).with_suffix("").parts
+    return (tests_dir.name, *relative[:-1])
+
+
+def imported_modules(
+    node: ast.Import | ast.ImportFrom,
+    source_owner: tuple[str, ...],
+) -> list[str]:
+    if isinstance(node, ast.Import):
+        return [alias.name for alias in node.names]
+    if node.level == 0:
+        return [node.module or ""]
+
+    retained = max(0, len(source_owner) - node.level + 1)
+    parts = [*source_owner[:retained]]
+    if node.module:
+        parts.extend(node.module.split("."))
+        return [".".join(parts)]
+    return [".".join((*parts, alias.name)) for alias in node.names]
+
+
+def imports_narrow_test_group(
+    source_owner: tuple[str, ...],
+    module: str,
+    tests_package: str,
+) -> bool:
+    target = tuple(part for part in module.split(".") if part)
+    if not target or target[0] != tests_package:
+        return False
+    common = 0
+    for source_part, target_part in zip(source_owner, target, strict=False):
+        if source_part != target_part:
+            break
+        common += 1
+    return any(part.startswith("test_") for part in target[common:])
+
+
+_CAPABILITY_FIXTURE_ROLES = {
+    "client",
+    "collector",
+    "connection",
+    "job",
+    "publisher",
+    "runner",
+    "scheduler",
+    "transport",
+    "worker",
+}
+_CASE_STATE_MUTATION_NAMES = {
+    "clear",
+    "create",
+    "delete",
+    "expire",
+    "insert",
+    "mark",
+    "remove",
+    "replace",
+    "reset",
+    "revoke",
+    "set",
+    "update",
+}
+
+
+def is_capability_argument(name: str) -> bool:
+    parts = set(name.split("_"))
+    return bool(
+        "client" in parts
+        or parts
+        & {
+            "connection",
+            "job",
+            "publisher",
+            "runner",
+            "scheduler",
+            "transport",
+            "worker",
+        }
+    )
+
+
+def is_stimulus_method(name: str) -> bool:
+    exact_stimuli = {
+        "connect",
+        "delete",
+        "get",
+        "handle",
+        "handshake",
+        "head",
+        "options",
+        "patch",
+        "post",
+        "put",
+        "request",
+        "run",
+        "run_once",
+        "trace",
+    }
+    stimulus_prefixes = (
+        "dispatch_",
+        "execute_",
+        "handle_",
+        "invoke_",
+        "process_",
+        "publish_",
+        "run_",
+        "send_",
+        "trigger_",
+    )
+    return name in exact_stimuli or name.startswith(stimulus_prefixes)
+
+
+def direct_capability_call(
+    node: ast.Call,
+    capability_arguments: set[str],
+) -> bool:
+    name = dotted_name(node.func) or ""
+    owner, separator, remainder = name.partition(".")
+    if not separator or owner not in capability_arguments:
+        return False
+    leaf = remainder.rsplit(".", 1)[-1]
+    return is_stimulus_method(leaf)
+
+
+def capability_fixture_repository_mutation(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> tuple[str, str, int] | None:
+    if node.name.startswith("_"):
+        return None
+    name_parts = set(node.name.split("_"))
+    if not name_parts & _CAPABILITY_FIXTURE_ROLES:
+        return None
+    non_capability_suffixes = {
+        "config",
+        "context",
+        "credentials",
+        "identity",
+        "record",
+        "repository",
+        "result",
+        "settings",
+        "state",
+    }
+    if node.name.rsplit("_", 1)[-1] in non_capability_suffixes:
+        return None
+    repositories = {
+        argument for argument in function_args(node) if argument.endswith("_repository")
+    }
+    if not repositories:
+        return None
+    for candidate in ast.walk(node):
+        if not isinstance(candidate, ast.Call):
+            continue
+        function = candidate.func
+        if not (
+            isinstance(function, ast.Attribute)
+            and isinstance(function.value, ast.Name)
+            and function.value.id in repositories
+        ):
+            continue
+        method_root = function.attr.split("_", 1)[0]
+        if method_root in _CASE_STATE_MUTATION_NAMES:
+            return function.value.id, function.attr, candidate.lineno
+    return None
 
 
 def is_fixture(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
@@ -160,11 +437,12 @@ class LambdaSkippingVisitor(ast.NodeVisitor):
 
 
 class FreshValueVisitor(LambdaSkippingVisitor):
-    def __init__(self) -> None:
+    def __init__(self, aliases: dict[str, str] | None = None) -> None:
         self.calls: list[ast.Call] = []
+        self.aliases = aliases or {}
 
     def visit_Call(self, node: ast.Call) -> None:
-        name = dotted_name(node.func) or ""
+        name = resolved_dotted_name(node.func, self.aliases) or ""
         leaf = name.rsplit(".", 1)[-1]
         owner = name.split(".", 1)[0]
         if leaf in {"now", "utcnow", "today", "uuid1", "uuid4"} or owner in {
@@ -187,6 +465,8 @@ class NameUseVisitor(ast.NodeVisitor):
 
 
 def nearest_pyproject(root: Path) -> Path:
+    if (root / ".git").exists() and not (root / "pyproject.toml").is_file():
+        return root / "pyproject.toml"
     for directory in (root, *root.parents):
         candidate = directory / "pyproject.toml"
         if candidate.is_file():
@@ -207,12 +487,30 @@ def load_policy(root: Path) -> tuple[Policy, list[str]]:
     try:
         data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, ValueError) as error:
-        return Policy(), [f"cannot read pyproject.toml: {error}"]
-    raw = data.get("tool", {}).get("pytest-blackbox")
-    if not isinstance(raw, dict):
+        return Policy(configured=True), [f"cannot read pyproject.toml: {error}"]
+    tool = data.get("tool")
+    if not isinstance(tool, dict) or "pytest-blackbox" not in tool:
         return Policy(), ["[tool.pytest-blackbox] is absent; run project onboarding"]
+    raw = tool.get("pytest-blackbox")
+    if not isinstance(raw, dict):
+        return Policy(configured=True), ["[tool.pytest-blackbox] must be a table"]
 
     errors: list[str] = []
+    supported_keys = {
+        "compose_lifecycle",
+        "config_version",
+        "coverage",
+        "dependency_group",
+        "external_services",
+        "generators_backend",
+        "infrastructure",
+        "layout",
+        "prefer_test_classes",
+        "test_concurrency",
+    }
+    unknown_keys = sorted(set(raw) - supported_keys)
+    if unknown_keys:
+        errors.append("unsupported configuration keys: " + ", ".join(unknown_keys))
     version = raw.get("config_version")
     layout = raw.get("layout", "standard")
     compose = raw.get("compose_lifecycle", "disabled")
@@ -221,19 +519,29 @@ def load_policy(root: Path) -> tuple[Policy, list[str]]:
     generators_backend = raw.get("generators_backend", "faker")
     dependency_group = raw.get("dependency_group")
     prefer_classes = raw.get("prefer_test_classes", True)
-    if version != 1:
+    test_concurrency = raw.get("test_concurrency", False)
+    if type(version) is not int or version != 1:
         errors.append(f"unsupported or missing config_version {version!r}")
-    if layout not in {"standard", "preserve"}:
+    if not isinstance(layout, str) or layout not in {"standard", "preserve"}:
         errors.append(f"unsupported layout {layout!r}")
-    if compose not in {"disabled", "enabled"}:
+    if not isinstance(compose, str) or compose not in {"disabled", "enabled"}:
         errors.append(f"unsupported compose_lifecycle {compose!r}")
-    if external not in {"intercept", "testcontainers", "mixed"}:
+    if not isinstance(external, str) or external not in {
+        "intercept",
+        "testcontainers",
+        "mixed",
+    }:
         errors.append(f"unsupported external_services {external!r}")
     if not isinstance(prefer_classes, bool):
         errors.append("prefer_test_classes must be boolean")
         prefer_classes = True
-    for key in ("infrastructure", "generators_backend"):
-        value = raw.get(key)
+    if not isinstance(test_concurrency, bool):
+        errors.append("test_concurrency must be boolean")
+        test_concurrency = False
+    for key, value in (
+        ("infrastructure", infrastructure),
+        ("generators_backend", generators_backend),
+    ):
         if not isinstance(value, str) or not value.strip():
             errors.append(f"{key} must be a non-empty string")
     if not isinstance(infrastructure, str) or not infrastructure.strip():
@@ -265,44 +573,95 @@ def load_policy(root: Path) -> tuple[Policy, list[str]]:
             dependency_group = dependency_group.strip()
     coverage = raw.get("coverage", [])
     coverage_rules: list[tuple[str, str]] = []
+    seen_selectors: dict[str, int] = {}
     if not isinstance(coverage, list):
         errors.append("coverage must be an array of tables")
     else:
-        http_prefixes = ("GET ", "POST ", "PUT ", "PATCH ", "DELETE ", "HEAD ")
+        http_prefixes = (
+            "CONNECT ",
+            "DELETE ",
+            "GET ",
+            "HEAD ",
+            "OPTIONS ",
+            "PATCH ",
+            "POST ",
+            "PUT ",
+            "TRACE ",
+        )
         for index, rule in enumerate(coverage, start=1):
             if not isinstance(rule, dict):
                 errors.append(f"coverage rule {index} must be a table")
                 continue
+            unknown_rule_keys = sorted(
+                set(rule) - {"selector", "decision", "rationale"}
+            )
+            if unknown_rule_keys:
+                errors.append(
+                    f"coverage rule {index} has unsupported keys: "
+                    + ", ".join(unknown_rule_keys)
+                )
             selector = rule.get("selector")
             decision = rule.get("decision")
+            rationale = rule.get("rationale")
             if not isinstance(selector, str) or not selector.strip():
                 errors.append(f"coverage rule {index} requires a selector")
-            elif selector.startswith(http_prefixes) or selector.startswith("/"):
-                errors.append(
-                    f"coverage rule {index} looks operation-specific; "
-                    "use a generalized non-contract surface selector"
-                )
-            if decision not in {"exclude", "focused", "standard"}:
-                errors.append(
-                    f"coverage rule {index} has invalid decision {decision!r}"
-                )
-            if isinstance(selector, str) and decision in {
+            else:
+                selector = selector.strip()
+                selector_key = selector.casefold()
+                if selector.upper().startswith(http_prefixes) or selector.startswith(
+                    "/"
+                ):
+                    errors.append(
+                        f"coverage rule {index} looks operation-specific; "
+                        "use a generalized non-contract surface selector"
+                    )
+                if selector_key in seen_selectors:
+                    errors.append(
+                        f"coverage rule {index} duplicates selector {selector!r} "
+                        f"from rule {seen_selectors[selector_key]}"
+                    )
+                else:
+                    seen_selectors[selector_key] = index
+            if not isinstance(decision, str) or decision not in {
                 "exclude",
                 "focused",
                 "standard",
             }:
+                errors.append(
+                    f"coverage rule {index} has invalid decision {decision!r}"
+                )
+            if not isinstance(rationale, str) or not rationale.strip():
+                errors.append(f"coverage rule {index} requires a rationale")
+            if (
+                isinstance(selector, str)
+                and isinstance(decision, str)
+                and decision
+                in {
+                    "exclude",
+                    "focused",
+                    "standard",
+                }
+            ):
                 coverage_rules.append((selector, decision))
     return (
         Policy(
             configured=True,
-            layout=layout if layout in {"standard", "preserve"} else "standard",
+            layout=(
+                layout
+                if isinstance(layout, str) and layout in {"standard", "preserve"}
+                else "standard"
+            ),
             prefer_test_classes=prefer_classes,
+            test_concurrency=test_concurrency,
             compose_lifecycle=(
-                compose if compose in {"disabled", "enabled"} else "disabled"
+                compose
+                if isinstance(compose, str) and compose in {"disabled", "enabled"}
+                else "disabled"
             ),
             external_services=(
                 external
-                if external in {"intercept", "testcontainers", "mixed"}
+                if isinstance(external, str)
+                and external in {"intercept", "testcontainers", "mixed"}
                 else "intercept"
             ),
             infrastructure=infrastructure,
@@ -359,6 +718,7 @@ class Audit:
             for node in tree.body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         ]
+        aliases = import_aliases(tree)
         fixtures = [node for node in functions if is_fixture(node)]
         tests = [TestNode(node) for node in functions if node.name.startswith("test_")]
         test_classes = [
@@ -428,7 +788,7 @@ class Audit:
             )
 
         self.audit_imports(path, tree)
-        self.audit_calls(path, tree)
+        self.audit_calls(path, tree, aliases)
         self.audit_conftest(path, tree, fixtures)
         self.audit_assertion_helpers(path, tree, tests, fixtures)
         self.audit_public_client_fields(path, tree)
@@ -437,6 +797,19 @@ class Audit:
         for fixture in fixtures:
             self.fixtures.append((fixture.name, path, fixture.lineno))
             self.fixture_dependency_uses.append((path, function_args(fixture)))
+            mutation = capability_fixture_repository_mutation(fixture)
+            if mutation:
+                repository, method, line = mutation
+                self.add(
+                    "ERROR",
+                    "FIX005",
+                    path,
+                    line,
+                    f"public capability fixture {fixture.name!r} mutates repository "
+                    f"state through {repository}.{method}(); move baseline creation "
+                    "to a private typed context or arrange a special transition "
+                    "visibly in the test",
+                )
             alias = is_simple_alias_fixture(fixture)
             if alias:
                 self.add(
@@ -481,11 +854,13 @@ class Audit:
                 path,
                 test.node,
                 (*test.inherited_decorators, *test.node.decorator_list),
+                aliases,
             )
             self.audit_test_semantics(
                 path,
                 test.node,
                 (*test.inherited_decorators, *test.node.decorator_list),
+                aliases,
             )
 
     def audit_test_path(self, path: Path) -> None:
@@ -526,7 +901,9 @@ class Audit:
         path: Path,
         test: ast.FunctionDef | ast.AsyncFunctionDef,
         _decorators: Sequence[ast.expr],
+        aliases: dict[str, str],
     ) -> None:
+        scoped_aliases = function_aliases(test, aliases)
         for node in ast.walk(test):
             if not isinstance(node, (ast.With, ast.AsyncWith)):
                 continue
@@ -555,8 +932,10 @@ class Audit:
                 and (dotted_name(item.context_expr.func) or "").rsplit(".", 1)[-1]
                 in {"connect", "websocket_connect"}
             ]
-            if connects and len(handshake.body) == 1 and isinstance(
-                handshake.body[0], ast.Pass
+            if (
+                connects
+                and len(handshake.body) == 1
+                and isinstance(handshake.body[0], ast.Pass)
             ):
                 self.add(
                     "ERROR",
@@ -569,41 +948,60 @@ class Audit:
 
         call_counts: dict[str, list[ast.Call]] = {}
         tested_arguments = {
-            name
-            for name in function_args(test)
-            if any(
-                token in name
-                for token in (
-                    "api_client",
-                    "worker",
-                    "runner",
-                    "scheduler",
-                    "job",
-                    "publisher",
-                )
-            )
-        }
-        invocation_leaves = {
-            "delete",
-            "get",
-            "handle",
-            "patch",
-            "post",
-            "process",
-            "publish",
-            "put",
-            "request",
-            "run",
-            "run_once",
+            name for name in function_args(test) if is_capability_argument(name)
         }
         for node in ast.walk(test):
             if not isinstance(node, ast.Call):
                 continue
             name = dotted_name(node.func) or ""
             owner = name.split(".", 1)[0]
-            leaf = name.rsplit(".", 1)[-1]
-            if owner in tested_arguments and leaf in invocation_leaves:
+            if direct_capability_call(node, tested_arguments):
                 call_counts.setdefault(owner, []).append(node)
+        if self.policy.configured and not self.policy.test_concurrency:
+            concurrent_invocations: list[ast.Call] = []
+            scheduled_invocations: list[ast.Call] = []
+            for node in ast.walk(test):
+                if not isinstance(node, ast.Call):
+                    continue
+                name = resolved_dotted_name(node.func, scoped_aliases) or ""
+                nested_invocations = [
+                    candidate
+                    for candidate in ast.walk(node)
+                    if isinstance(candidate, ast.Call)
+                    and candidate is not node
+                    and direct_capability_call(candidate, tested_arguments)
+                ]
+                if (
+                    name in {"asyncio.gather", "anyio.gather"}
+                    and len(nested_invocations) > 1
+                ):
+                    concurrent_invocations.extend(nested_invocations)
+                elif nested_invocations and (
+                    name in {"asyncio.create_task", "asyncio.ensure_future"}
+                    or name.rsplit(".", 1)[-1] == "create_task"
+                ):
+                    scheduled_invocations.extend(nested_invocations)
+                elif name.rsplit(".", 1)[-1] == "start_soon" and node.args:
+                    target = dotted_name(node.args[0]) or ""
+                    target_owner, separator, target_leaf = target.partition(".")
+                    if (
+                        separator
+                        and target_owner in tested_arguments
+                        and is_stimulus_method(target_leaf)
+                    ):
+                        scheduled_invocations.append(node)
+            violation = concurrent_invocations or (
+                scheduled_invocations if len(scheduled_invocations) > 1 else []
+            )
+            if violation:
+                self.add(
+                    "ERROR",
+                    "CONC001",
+                    path,
+                    violation[0].lineno,
+                    "concurrent application invocations contradict active "
+                    "test_concurrency = false",
+                )
         for owner, calls in call_counts.items():
             if len(calls) > 1:
                 self.add(
@@ -812,7 +1210,11 @@ class Audit:
             self.policy.generators_backend,
             self.policy.generators_backend.replace("-", "_"),
         )
+        monitored_backend_modules = set(backend_modules.values()) | {
+            selected_backend_module
+        }
         relative_parts = path.relative_to(self.tests_dir).parts
+        source_owner = source_test_owner(path, self.tests_dir)
         generator_facade = path.name in {"fake.py", "generators.py"} or any(
             part in {"data_generation", "factories", "fake", "generators"}
             for part in relative_parts[:-1]
@@ -820,10 +1222,9 @@ class Audit:
         for node in ast.walk(tree):
             modules: list[str] = []
             line = getattr(node, "lineno", 1)
-            if isinstance(node, ast.Import):
-                modules = [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom):
-                modules = [node.module or ""]
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                modules = imported_modules(node, source_owner)
+            if isinstance(node, ast.ImportFrom):
                 imported = {alias.name for alias in node.names}
                 if (node.module or "").startswith("sqlalchemy") and imported & {
                     "Session",
@@ -838,6 +1239,36 @@ class Audit:
                         node.lineno,
                         "SQLAlchemy session APIs are forbidden in test support",
                     )
+            dependency_modules = list(modules)
+            if isinstance(node, ast.ImportFrom) and node.module is not None and modules:
+                dependency_modules.extend(
+                    f"{modules[0]}.{alias.name}"
+                    for alias in node.names
+                    if alias.name != "*"
+                )
+            dependency_violations = [
+                module
+                for module in sorted(
+                    set(dependency_modules),
+                    key=lambda item: (item.count("."), item),
+                )
+                if imports_narrow_test_group(
+                    source_owner,
+                    module,
+                    self.tests_dir.name,
+                )
+            ]
+            if dependency_violations:
+                module = dependency_violations[0]
+                self.add(
+                    "ERROR",
+                    "DEP001",
+                    path,
+                    line,
+                    f"broader or sibling test support imports narrower group "
+                    f"{module!r}; move composition to the narrowest owning "
+                    "group or promote only the shared mechanism",
+                )
             for module in modules:
                 root_module = module.split(".", 1)[0]
                 if path.name == "conftest.py" and root_module in {
@@ -883,7 +1314,7 @@ class Audit:
                         "generic mock tooling requires manual application-source "
                         "boundary review; prefer a typed performance double/Service",
                     )
-                if root_module in set(backend_modules.values()):
+                if root_module in monitored_backend_modules:
                     if (
                         self.policy.configured
                         and root_module != selected_backend_module
@@ -926,28 +1357,26 @@ class Audit:
                     }
                     parts = set(module.split("."))
                     internal_role = bool(parts & internal_tokens)
-                    selected = (
-                        self.policy.infrastructure == "testcontainers"
-                        if internal_role
-                        else self.policy.external_services
-                        in {"testcontainers", "mixed"}
-                    )
-                    if selected:
+                    if not internal_role:
+                        self.add(
+                            "MANUAL",
+                            "ENV001",
+                            path,
+                            line,
+                            "classify generic Testcontainers usage as internal "
+                            "infrastructure or an external mock server and confirm "
+                            "the matching project policy",
+                        )
                         continue
-                    if internal_role:
-                        severity = "ERROR" if self.policy.configured else "WARNING"
-                        message = (
-                            "internal Testcontainers usage contradicts active "
-                            "infrastructure policy"
-                            if self.policy.configured
-                            else "confirm Testcontainers as the internal infrastructure provider"
-                        )
-                    else:
-                        severity = "MANUAL"
-                        message = (
-                            "classify Testcontainers usage as internal infrastructure "
-                            "or external mock servers and confirm the matching policy"
-                        )
+                    if self.policy.infrastructure == "testcontainers":
+                        continue
+                    severity = "ERROR" if self.policy.configured else "WARNING"
+                    message = (
+                        "internal Testcontainers usage contradicts active "
+                        "infrastructure policy"
+                        if self.policy.configured
+                        else "confirm Testcontainers as the internal infrastructure provider"
+                    )
                     self.add(severity, "ENV001", path, line, message)
                 if module == "subprocess":
                     self.add(
@@ -958,7 +1387,13 @@ class Audit:
                         "subprocess requires a documented no-library/API opt-in",
                     )
 
-    def audit_calls(self, path: Path, tree: ast.Module) -> None:
+    def audit_calls(
+        self,
+        path: Path,
+        tree: ast.Module,
+        aliases: dict[str, str],
+    ) -> None:
+        call_names = resolved_call_names(tree)
         forbidden_calls = {
             "time.sleep": ("WAIT001", "sleep is forbidden"),
             "asyncio.sleep": ("WAIT001", "sleep is forbidden"),
@@ -979,15 +1414,29 @@ class Audit:
             ),
             "freeze_time": ("TIME001", "time freezing is forbidden"),
         }
+        forbidden_session_calls = {
+            "sqlalchemy.ext.asyncio.AsyncSession",
+            "sqlalchemy.ext.asyncio.async_sessionmaker",
+            "sqlalchemy.orm.Session",
+            "sqlalchemy.orm.sessionmaker",
+        }
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
-            name = dotted_name(node.func) or ""
+            name = call_names.get(id(node), "")
             leaf = name.rsplit(".", 1)[-1]
             violation = forbidden_calls.get(name) or forbidden_leaf_calls.get(leaf)
             if violation:
                 code, message = violation
                 self.add("ERROR", code, path, node.lineno, message)
+            if name in forbidden_session_calls:
+                self.add(
+                    "ERROR",
+                    "DB001",
+                    path,
+                    node.lineno,
+                    "SQLAlchemy session APIs are forbidden in test support",
+                )
             if leaf == "wait_for" and "messaging" in path.parts:
                 self.add(
                     "ERROR",
@@ -1142,6 +1591,7 @@ class Audit:
         path: Path,
         test: ast.FunctionDef | ast.AsyncFunctionDef,
         decorators: Sequence[ast.expr],
+        aliases: dict[str, str],
     ) -> None:
         parametrized_names: set[str] = set()
         for decorator in decorators:
@@ -1201,7 +1651,7 @@ class Audit:
                     decorator.lineno,
                     "dynamic parametrization rows require manual ID/value review",
                 )
-            fresh = FreshValueVisitor()
+            fresh = FreshValueVisitor(aliases)
             fresh.visit(rows)
             for call in fresh.calls:
                 self.add(

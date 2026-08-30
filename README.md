@@ -133,7 +133,7 @@ applicable `pyproject.toml`. If it is absent, the `discover` workflow:
 
 1. Scans project structure without importing or starting the application.
 2. Proposes material project-wide choices with confidence and evidence.
-3. Asks only about ambiguous choices plus the explicit managed-dependency opt-in.
+3. Asks only about ambiguous choices, the concurrency D choice, and the explicit managed-dependency opt-in.
 4. Shows the exact `pyproject.toml` patch before writing anything.
 
 Recommended defaults for a new suite are:
@@ -143,6 +143,7 @@ Recommended defaults for a new suite are:
 config_version = 1
 layout = "standard"
 prefer_test_classes = true
+test_concurrency = false
 infrastructure = "existing-services"
 compose_lifecycle = "disabled"
 external_services = "intercept"
@@ -183,7 +184,8 @@ python scripts/audit_suite.py /path/to/project
 - `lint_suite.py` emits mechanically provable diagnostics in Ruff-like text or
   JSON.
 - `audit_suite.py` adds the preserved semantic review section, including every
-  applicable `SEM*` requirement.
+  applicable `SEM*` requirement and distinct operation/scenario completeness
+  reconciliation.
 
 All three commands support `--mode auto|fallback|enhanced`. Auto mode stays on
 the bundled fallback until `dependency_group` is confirmed and the

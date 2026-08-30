@@ -49,7 +49,7 @@ def safe_paths(root: Path, pattern: str) -> Iterator[Path]:
 def find_pyprojects(root: Path) -> tuple[Path | None, list[Path]]:
     direct = root / "pyproject.toml"
     owner: Path | None = direct if direct.is_file() else None
-    if owner is None:
+    if owner is None and not (root / ".git").exists():
         for parent in root.parents:
             candidate = parent / "pyproject.toml"
             if candidate.is_file():
@@ -260,10 +260,17 @@ def discover(root: Path) -> dict[str, Any]:
     package_managers = package_manager_names(owner.parent if owner else root, pyproject)
     imports, async_defs, compose_literal, parse_failures = python_facts(root)
     layout = layout_facts(root)
-    configured = isinstance(pyproject.get("tool"), Mapping) and isinstance(
-        pyproject.get("tool", {}).get("pytest-blackbox"), Mapping
+    tool = pyproject.get("tool")
+    configured = isinstance(tool, Mapping) and "pytest-blackbox" in tool
+    policy_errors: list[str] = []
+    if configured:
+        from .fallback_audit import load_policy
+
+        _, policy_errors = load_policy(root)
+    raw_policy = (
+        tool.get("pytest-blackbox") if configured and isinstance(tool, Mapping) else {}
     )
-    policy = pyproject.get("tool", {}).get("pytest-blackbox", {}) if configured else {}
+    policy = raw_policy if isinstance(raw_policy, Mapping) else {}
     configured_dependency_group = policy.get("dependency_group")
     managed_dependency_group = (
         configured_dependency_group.strip()
@@ -282,17 +289,30 @@ def discover(root: Path) -> dict[str, Any]:
         "config_version": 1,
         "layout": layout["suggested"],
         "prefer_test_classes": True,
+        "test_concurrency": False,
         "infrastructure": "existing-services",
         "compose_lifecycle": "enabled" if compose_literal else "disabled",
         "external_services": "intercept",
         "generators_backend": generator,
     }
+    if configured and not policy_errors:
+        for key in tuple(proposal):
+            if key in policy:
+                proposal[key] = policy[key]
+        if managed_dependency_group is not None:
+            proposal["dependency_group"] = managed_dependency_group
+        if isinstance(policy.get("coverage"), list):
+            proposal["coverage"] = policy["coverage"]
+    rendered_proposal: dict[str, object] | None = proposal
+    if pyproject_error or (configured and policy_errors):
+        rendered_proposal = None
     return {
         "project_root": str(root),
         "pyproject": str(owner) if owner else None,
         "pyproject_error": pyproject_error,
         "nested_pyprojects": [str(path) for path in nested[:20]],
         "configured": configured,
+        "policy_errors": policy_errors,
         "facts": {
             "layout": layout,
             "async_functions": async_defs,
@@ -314,7 +334,8 @@ def discover(root: Path) -> dict[str, Any]:
             "dependency_groups": dependency_groups,
             "package_managers": package_managers,
         },
-        "proposal": proposal,
+        "proposal": rendered_proposal,
+        "proposal_blocked": bool(pyproject_error or (configured and policy_errors)),
         "optional_capabilities": {
             "managed_dependencies": {
                 "config_key": "dependency_group",
@@ -336,6 +357,11 @@ def discover(root: Path) -> dict[str, Any]:
             ),
             "whether an observed Compose mode is intentional",
             *(
+                ["whether concurrency contract tests are enabled (default: false)"]
+                if not configured or "test_concurrency" not in policy
+                else []
+            ),
+            *(
                 [
                     (
                         "whether pytest-blackbox may install its enhanced toolchain "
@@ -352,6 +378,19 @@ def discover(root: Path) -> dict[str, Any]:
 def toml_proposal(proposal: Mapping[str, object]) -> str:
     lines = ["[tool.pytest-blackbox]"]
     for key, value in proposal.items():
+        if key == "coverage":
+            continue
         rendered = str(value).lower() if isinstance(value, bool) else json.dumps(value)
         lines.append(f"{key} = {rendered}")
+    coverage = proposal.get("coverage", [])
+    if isinstance(coverage, list):
+        for rule in coverage:
+            if not isinstance(rule, Mapping):
+                continue
+            lines.append("")
+            lines.append("[[tool.pytest-blackbox.coverage]]")
+            for key in ("selector", "decision", "rationale"):
+                value = rule.get(key)
+                if isinstance(value, str):
+                    lines.append(f"{key} = {json.dumps(value)}")
     return "\n".join(lines)

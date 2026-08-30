@@ -8,6 +8,173 @@ apply only relevant migrations without rerunning a full suite audit.
 
 No changes yet.
 
+## [0.4.0] - 2026-08-30
+
+### Added
+
+- `DEP001` deterministic diagnostics for broad or sibling test support importing
+  an implementation from a narrower `test_*` group.
+- `FIX005` deterministic diagnostics for public capability fixtures that mutate
+  repository state directly instead of consuming a private baseline context or
+  leaving a special transition visible in test arrange.
+- `test_concurrency` adaptive project choice, disabled by default.
+- Explicit idempotency contract rules and the `test_idempotency.py` category.
+- `test_topology.py` guidance for selected worker declaration and consumer
+  registration contracts.
+- `SEM006` semantic scenario-completeness reconciliation and conditional
+  `SEM007` concurrency review.
+
+### Changed
+
+- Test-owned protocol outcomes are explicitly minimal projections of the
+  current public contract: mutually exclusive immutable variants, zero-field
+  success markers when appropriate, and no speculative SDK metadata.
+- Protocol support now distinguishes generic `Transport`, accepted
+  `Connection`, and functional `Client` roles; public fixture names describe the
+  actual returned capability.
+- Child-specific fixture composition belongs to the narrowest owning group,
+  while revoked/expired/deleted/pending and other special states stay visible in
+  the test arrange phase.
+- `SEM005` now reconciles WebSocket outcome minimality, layer ownership, and
+  fixture locality in addition to operation and lifecycle coverage.
+- The `audit` workflow now treats operation census and scenario/outcome
+  completeness as two separate mandatory semantic reconciliations.
+- Policy parsing now rejects unknown `[tool.pytest-blackbox]` keys so a typo
+  cannot silently activate a default.
+- Discovery refreshes preserve already recorded project-wide choices in the
+  proposed patch instead of silently proposing onboarding defaults again.
+- Generic Testcontainers imports remain a manual internal-vs-external
+  classification in every mode; `mixed` no longer silently treats them as
+  external mock servers.
+- Policy parsing now fails closed for unreadable/malformed TOML and rejects
+  wrong scalar types without crashing or accepting boolean/float config
+  versions.
+- Discovery refreshes preserve generalized coverage rules in the rendered TOML
+  proposal.
+- Discovery with an invalid recorded policy now withholds a replacement patch
+  instead of resetting unrelated valid project choices to inferred defaults.
+- Discovery rejects missing or non-directory project roots instead of proposing
+  onboarding configuration for a mistyped path.
+- Explicit concurrency cases use independently committing transactions plus
+  deterministic committed-state cleanup instead of the ordinary shared
+  rollback transaction.
+- The fallback checker resolves ordinary import aliases for banned calls,
+  rejects obvious concurrent public invocations when concurrency is disabled,
+  enforces the selected custom generator backend facade, and finds scheduler or
+  worker surfaces in preserved layouts.
+- Coverage rules now require strict keys, a rationale, and unique generalized
+  selectors; rendered refresh proposals retain the complete registry.
+- Validation treats registered discriminators like enums, so a broader schema
+  string bound does not fabricate successful rows for unsupported operations.
+- Toolchain declaration checks require the `tomli` backport only on Python
+  versions that actually need it.
+
+### Existing-project actions
+
+These actions are conditional and idempotent. They prepare existing projects
+for the next minor release; the configuration schema remains at
+`config_version = 1`.
+
+#### PBB-MIG-0.4.0-01 — Test-support dependency direction
+
+- **Condition:** a broad surface or sibling test module imports a functional
+  adapter from a narrower `test_*` component.
+- **Action:** keep the generic mechanism at the broad layer and move the
+  child-specific adapter fixture to the narrowest common owning `conftest.py`.
+- **Do not:** promote child route/discriminator defaults into shared support or
+  make a parent fixture import a child implementation.
+- **No-op when:** every test-support import points broad-to-narrow toward its
+  consumer and component composition is already local.
+
+#### PBB-MIG-0.4.0-02 — Stable capability fixtures
+
+- **Condition:** a public client/transport/worker/runner/publisher/collector/
+  scheduler/job fixture directly mutates a repository.
+- **Action:** move baseline actor/session/resource creation to a private cohesive
+  typed context consumed by the capability fixture. For revoked, expired,
+  deleted, pending, blocked, or another case-specific state, expose the known
+  identifier and arrange the transition visibly through a semantic repository
+  method in the test.
+- **Do not:** replace visible arrange with a family of state-named client
+  fixtures or re-query storage for an identifier already prepared by context.
+- **No-op when:** capability fixtures are stable and special state transitions
+  are already visible in each owning case's arrange phase.
+
+#### PBB-MIG-0.4.0-03 — Minimal protocol outcomes and role names
+
+- **Condition:** a test-owned protocol result contains unused/future optional
+  fields, combines mutually exclusive shapes into a nullable bag, or layers
+  multiple vaguely named clients.
+- **Action:** retain only current contractual fields, use separate frozen
+  variants plus a union alias, use a zero-field success marker when the contract
+  returns no success data, and distinguish Transport/Connection/functional
+  Client roles. Rename public fixtures to match the capability they return.
+- **Do not:** copy all metadata exposed by the underlying SDK, invent future
+  contract fields, or create a third class for a union alias.
+- **No-op when:** protocol projections are already minimal and layer/fixture
+  names communicate their real roles.
+
+#### PBB-MIG-0.4.0-04 — Concurrency coverage choice
+
+- **Condition:** `[tool.pytest-blackbox]` does not record the concurrency D
+  choice.
+- **Action:** ask whether the suite intentionally tests explicit concurrency
+  guarantees and add `test_concurrency = false` by default or `true` when
+  confirmed.
+- **Do not:** infer opt-in from async code, locks, transactions, requirements
+  prose, or existing sequential repetition tests.
+- **No-op when:** the boolean choice is already recorded.
+
+#### PBB-MIG-0.4.0-05 — Explicit idempotency contracts
+
+- **Condition:** repeated-operation tests claim idempotency or duplicate
+  delivery without an authoritative promise, stable identity, complete first
+  result, second terminal result, or positive non-duplication artifact.
+- **Action:** remove unsupported repetition or move the cohesive promised matrix
+  to `test_idempotency.py` and prove exact artifact cardinality after two calls.
+- **Do not:** infer idempotency from implementation guards, deterministic IDs,
+  unique constraints, or empty dead-letter queues.
+- **No-op when:** every repeated case cites and proves its exact contract.
+
+#### PBB-MIG-0.4.0-06 — Worker topology and semantic completeness
+
+- **Condition:** either worker runtime/registration is selected but its actual
+  declaration, binding, QoS, or handler registration is unproved, or audit
+  evidence maps only operations/files without their distinct public scenarios
+  and outcomes.
+- **Action:** for the first condition, add deterministic `test_topology.py`
+  coverage through the actual production composition seam. Independently, for
+  the second condition, reconcile `SEM006` against collected cases. Apply only
+  the branch whose condition is present.
+- **Do not:** start a live waiting consumer, test broker reliability, duplicate
+  topology in a parallel oracle, or treat a green primary contract as scenario
+  completeness.
+- **No-op when:** selected topology and every public-contract scenario map to
+  concrete collected evidence; generalized decisions cover only non-contract
+  surfaces and the recorded concurrency boundary.
+
+#### PBB-MIG-0.4.0-07 — Strict policy keys
+
+- **Condition:** `[tool.pytest-blackbox]` contains an unknown or misspelled key.
+- **Action:** correct the key to the documented schema or remove obsolete local
+  metadata that is not a supported project-wide choice.
+- **Do not:** preserve an ignored typo for compatibility or move arbitrary
+  implementation details into another pytest-blackbox key.
+- **No-op when:** the policy table contains only documented keys.
+
+#### PBB-MIG-0.4.0-08 — Strict generalized coverage registry
+
+- **Condition:** a `[[tool.pytest-blackbox.coverage]]` rule lacks a non-empty
+  rationale, contains an unsupported key, or repeats a selector already present
+  in the registry.
+- **Action:** add the confirmed project-level rationale, remove unsupported
+  metadata, and merge duplicate selectors into one unambiguous generalized
+  decision after asking when their decisions conflict.
+- **Do not:** invent rationale text, silently choose between conflicting
+  decisions, or replace the generalized registry with per-operation entries.
+- **No-op when:** every selector is unique and every rule contains only
+  `selector`, `decision`, and a confirmed non-empty `rationale`.
+
 ## [0.3.0] - 2026-08-28
 
 ### Added
@@ -207,7 +374,8 @@ No project-file migration was required.
 - The shared black-box pytest policy, project onboarding, fallback discovery,
   and deterministic auditor.
 
-[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.1.0...v0.1.2

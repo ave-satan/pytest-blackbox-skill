@@ -96,8 +96,10 @@ the listing, manifest, and legal pages before submission.
   Reconcile every public API endpoint, registered job, scheduler, worker, and
   message handler with its contract coverage. Do not change files.
 - **Expected behavior:** Invoke `audit`, build an operation census, run the
-  deterministic auditor when available, reconcile mechanical output with
-  semantic coverage, and keep the audit read-only.
+  deterministic auditor when available, then independently reconcile both
+  operation presence and every distinct application-owned scenario/outcome
+  from requirements and source with concrete collected test evidence. Keep the
+  audit read-only and do not treat a green primary contract as completeness.
 - **Expected result shape:** Audited boundary, operation-to-test census,
   findings ordered by severity, mechanical validation output, manual semantic
   checks, and explicit limitations.

@@ -10,6 +10,7 @@ class Policy:
     configured: bool = False
     layout: str = "standard"
     prefer_test_classes: bool = True
+    test_concurrency: bool = False
     compose_lifecycle: str = "disabled"
     external_services: str = "intercept"
     infrastructure: str = "existing-services"
