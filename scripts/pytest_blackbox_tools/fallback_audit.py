@@ -802,6 +802,7 @@ class Audit:
         self.audit_conftest(path, tree, fixtures)
         self.audit_assertion_helpers(path, tree, tests, fixtures)
         self.audit_public_client_fields(path, tree)
+        self.audit_cross_component_private_access(path, tree)
         self.audit_matcher_bounds(path, tree)
 
         for fixture in fixtures:
@@ -917,43 +918,26 @@ class Audit:
         for node in ast.walk(test):
             if not isinstance(node, (ast.With, ast.AsyncWith)):
                 continue
-            exception_names = {
-                dotted_name(argument) or ""
-                for item in node.items
-                if isinstance(item.context_expr, ast.Call)
-                and (dotted_name(item.context_expr.func) or "").endswith("raises")
-                for argument in item.context_expr.args[:1]
-            }
-            if not any(
-                token in name.lower()
-                for name in exception_names
-                for token in ("handshake", "websocket")
-            ):
-                continue
-            if len(node.body) != 1 or not isinstance(
-                node.body[0], (ast.With, ast.AsyncWith)
-            ):
-                continue
-            handshake = node.body[0]
             connects = [
                 item.context_expr
-                for item in handshake.items
+                for item in node.items
                 if isinstance(item.context_expr, ast.Call)
                 and (dotted_name(item.context_expr.func) or "").rsplit(".", 1)[-1]
                 in {"connect", "websocket_connect"}
             ]
             if (
                 connects
-                and len(handshake.body) == 1
-                and isinstance(handshake.body[0], ast.Pass)
+                and len(node.body) == 1
+                and isinstance(node.body[0], ast.Pass)
             ):
                 self.add(
                     "ERROR",
                     "WS001",
                     path,
                     node.lineno,
-                    "expected WebSocket handshake denial is a wire value; normalize it "
-                    "in the test client instead of pytest.raises plus an empty context",
+                    "empty WebSocket connection context hides the observable lifecycle "
+                    "outcome; expose and assert a natural accepted/denied/close value "
+                    "through the test-owned adapter",
                 )
 
         call_counts: dict[str, list[ast.Call]] = {}
@@ -1139,6 +1123,32 @@ class Audit:
                         "runtime/transport mechanics; keep it private behind a domain "
                         "operation",
                     )
+
+    def audit_cross_component_private_access(
+        self,
+        path: Path,
+        tree: ast.Module,
+    ) -> None:
+        for node in ast.walk(tree):
+            if not (
+                isinstance(node, ast.Attribute)
+                and node.attr.startswith("_")
+                and not node.attr.startswith("__")
+                and isinstance(node.value, ast.Attribute)
+                and node.value.attr.startswith("_")
+                and isinstance(node.value.value, ast.Name)
+                and node.value.value.id in {"self", "cls"}
+            ):
+                continue
+            self.add(
+                "ERROR",
+                "ENC001",
+                path,
+                node.lineno,
+                "support component reaches into a collaborator's private member; "
+                "expose a truthful narrow public capability on the owner or move the "
+                "cohesive operation to an aggregate owner",
+            )
 
     def audit_matcher_bounds(self, path: Path, tree: ast.Module) -> None:
         relative_parts = path.relative_to(self.tests_dir).parts

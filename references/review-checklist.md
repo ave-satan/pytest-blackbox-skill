@@ -24,9 +24,9 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Is every public product HTTP/JSON-RPC/WebSocket operation and registered job/scheduler/handler independently covered, while documentation-only endpoints and generated API docs stay outside the contract suite?
 - Was the final framework registration/action table inspected so synthesized confirmation/rendering GETs, mutating POSTs, mounted actions, and other method-specific functional routes were inventoried separately?
 - Was a transient contract-evidence matrix reconciled against collected nodes, including every operation matched by a `focused` rule and every application-owned observable outcome class?
-- Was scenario completeness checked semantically from authoritative requirements plus source behavior, including reachable/tolerated state partitions, compound ownership/isolation dimensions, boundaries, terminal/no-op/stale outcomes, mixed batch partitions, and direct artifacts—without manufacturing corrupt states or relying only on component/file presence?
+- Was scenario completeness checked semantically from authoritative requirements plus source behavior, including reachable/tolerated state partitions, compound ownership/isolation dimensions, boundaries, terminal/no-op/stale outcomes, mixed batch partitions, and direct artifacts—without manufacturing corrupt states or relying only on component/file presence? When ownership affects selection/access, does each operation cover the same resource owned by another principal?
 - Is ordinary HTTP identity method + path, JSON-RPC identity HTTP method + RPC method, and WebSocket identity route lifecycle or route + contractual subprotocol/discriminator?
-- Do WebSocket tests keep handshake denials as values, prove required non-terminal continuation and close outcomes, and propagate unexpected application-task failures without timeout waits?
+- Do WebSocket tests keep handshake denials as values, prove required non-terminal continuation and close outcomes, avoid empty connection contexts whose body is only `pass`, and propagate unexpected application-task failures without timeout waits?
 - Does the route-level WebSocket component use a clear connection/lifecycle category—preferably `test_connection.py` in the standard layout—while independently invokable message commands choose categories by their own behavior?
 - Are WebSocket outcome variants immutable, mutually exclusive, and limited to current contractual fields, using a zero-field accepted marker when success carries no data?
 - Does an async-dispatching API test stop at response + queued artifact, leaving execution to a separate worker contract, and use a supported deterministic completion boundary instead of racing later fire-and-forget work?
@@ -34,6 +34,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Are non-contract surfaces classified by the generalized registry before scope expands?
 - Is there one primary full contract plus every applicable category, with domain-state rejection owned by `test_business_logic.py`, transport/dependency/operational failures owned by `test_errors.py`, and any other cohesive aspect given a concise behavior-specific name?
 - Does each primary contract exact-compare the complete stable public response/value, including unchanged fields returned by partial updates?
+- Are runtime legacy-format/backward-compatibility cases present only for an authoritative product/operational promise, named and asserted as preserved public behavior through repositories/builders rather than as a conversion/migration implementation? Are database schema migrations still checked only by suite bootstrap/reversal?
 - Does every repeated public invocation cite an explicit authoritative repetition contract rather than infer idempotency/retry from implementation or naming?
 - Does each idempotency case use the same contractual identity, exactly two calls unless another phase is promised, a complete first result, the promised second terminal result, and positive exact evidence that direct artifacts were not duplicated, rather than one call against prearranged final state?
 - Is a cohesive idempotency matrix named `test_idempotency.py` rather than hidden in generic business logic?
@@ -53,8 +54,9 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Do collection assertions preserve exact cardinality and duplicate multiplicity instead of hiding duplicates with a set conversion?
 - For rendered HTML/SSR, are all relevant application-owned view fields, echoed identifiers, action/CSRF state, and result/error partitions covered without snapshotting dependency-generated markup?
 - Are separately bound results named `actual`/`actual_*` and expectations `expected`/`expected_*`?
+- Do assertions start with native Python equality/operators—ordinary dictionaries/lists, `len`, membership, and comprehensions—and use a matcher only when it adds contract semantics or materially clearer diagnostics?
 - Are compound values compared whole and independent observations kept separate without a manufactured aggregate?
-- Is partial structural comparison limited to a focused variation/edge case whose remainder is already protected or an intentionally extensible natural container whose declared subset is the complete application-owned contract? Does the matcher receive the complete observed value and require every declared element without a selected-field projection or deleting, merging, or overwriting ignored values? If normalization is necessary, is the complete natural container and contractual multiplicity preserved while closed primary values remain exact?
+- Is partial structural comparison limited to a focused variation/edge case whose remainder is already protected or an intentionally extensible natural container whose declared subset is the complete application-owned contract? Does its public matcher name expose partiality without a boolean mode, and does it receive the complete observed compound value and require every declared element without deleting, merging, or overwriting ignored values? If a list comprehension projects one ordered scalar property, are complete item contracts protected elsewhere and is that projection itself the focused case? If normalization is necessary, is the complete natural container and contractual multiplicity preserved while closed primary values remain exact?
 - Does every assertion remain an explicit `assert`, with builders/matchers rather than assertion helpers?
 - Is `pytest.raises` limited to naturally exception-based public boundaries, with wire errors kept as values and unexpected tracebacks preserved?
 
@@ -73,7 +75,8 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Are fixture-only dependencies private and absent from test signatures?
 - Are cleanup and ordering explicit, with no meaningless `del` or pass-through fixture aliases?
 - Does shared support avoid imports and hardcoded route/discriminator/topology/expected literals from narrower or sibling test groups and unsupported production internals?
-- Do all public domain-facing support classes, fixtures, and methods use role-appropriate domain action/target/state/outcome names that truthfully describe their result and cardinality, with technical storage/transport/discriminator/caller/optimization details private and generic methods limited to one unambiguous owning contract? Are intentionally generic structural/protocol primitives precisely named at their actual abstraction level without child-domain defaults?
+- Do all public domain-facing support classes, fixtures, and methods start from the shortest canonical owner-relative operation and add only the qualifier needed to distinguish siblings, without mechanically repeating the owner noun? Do names truthfully describe their result and cardinality, keep technical storage/transport/discriminator/caller/optimization details private, and leave intentionally generic structural/protocol primitives precisely named at their actual abstraction level without child-domain defaults?
+- Does every shared/public support object avoid another support object's private members, exposing a narrow truthful public capability or aggregate owner instead of crossing the underscore boundary or exchanging raw storage references?
 - Does every broad-to-narrow import point toward the consumer, with child-specific fixture composition kept in the child's nearest `conftest.py`?
 - Are immutable factories/bootstrap widest-safely-scoped while transactions, actors, credentials, clients, messages, and case state remain function-scoped?
 - Are known prepared entities, credentials, identifiers, and resource handles reused through typed contexts rather than rediscovered?
@@ -94,7 +97,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Was repository minimality checked against the real storage/resource contract, and do file/object `create` methods generate ordinary valid key/body defaults?
 - Does `create_many` build fresh values then execute one bulk write?
 - Do aggregate/domain bulk constructors delegate to bulk primitives instead of looping over single creates?
-- Are repository methods minimal, canonically named, strict about cardinality, filterless by default in a clean case, and owned by the state they mutate rather than a neighboring state used to rediscover its identifier?
+- Are repository methods minimal, canonically and owner-relatively named, strict about cardinality, filterless by default in a clean case, and owned by the state they mutate rather than a neighboring state used to rediscover its identifier? Does the public base CRUD method remain available alongside semantic variants?
 - Do specialized repository operations name the actual created/read/updated/deleted domain target or state, keep singular/plural cardinality truthful, avoid naming an owner argument or persisted implementation discriminator as the result, and use consistent vocabulary across aggregate and lower-level repositories?
 - Does coherent multi-store work live in a narrow aggregate repository, while queues use Publishers/Collectors?
 - Are independently meaningful existence states separate domain methods?
@@ -102,6 +105,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Do tests use the project generator facade, random logged seed with explicit replay, and in-constraint values?
 - Do file contracts use builders that derive success/boundary/error variants, with real files only as templates?
 - Do matcher constraints avoid finite sentinels for unbounded domains?
+- Are exact mappings/lists and simple length/membership checks expressed natively, with `OrderedList` reserved for contractual order plus useful matcher composition/diagnostics, and one-field ordered projections expressed as ordinary list comprehensions rather than lists of partial element matchers?
 
 ## Infrastructure, messaging, and time
 

@@ -44,7 +44,7 @@ Do not add generic aliases such as `get`, `find`, `fetch`, `list`, or `remove`. 
 
 For an ordinary single-resource repository, read/cardinality methods share optional keyword-only exact-match filters. No filters means the complete already-isolated case scope. Add a domain-named query only when a join, predicate, ordering, projection, or relationship cannot be expressed clearly with exact filters. Never rely on incidental store order.
 
-Specialized CRUD methods follow the public support naming rule in [fixtures.md](fixtures.md#public-support-api-naming). Keep the operation truthful and add only the smallest domain target, role, state, or outcome needed to disambiguate it: `create_gallery_photo`, `get_gallery_photos`, `count_gallery_photos`, `mark_photo_deleting`, or `delete_expired_photos`. The name must agree with the returned or mutated entity and with singular/plural cardinality. An owner/context argument does not replace the target name: a method returning media is not `create_character(character)`. A persisted discriminator such as `source="catalog"` does not justify `create_catalog` unless “catalog” is itself the stable domain role exposed to tests. Keep the same domain vocabulary across aggregate and lower-level repositories; implementation details such as joins, storage backend, batch strategy, or “last asset” stay private.
+Specialized CRUD methods follow the public support naming rule in [fixtures.md](fixtures.md#public-support-api-naming). The repository class/fixture already names the default domain noun, so start with the canonical shortest operation: `SessionRepository.create()`, not `create_session()`; `MediaRepository.get_many()`, not `get_media_assets()`. Add only the smallest target, role, state, outcome, or cardinality qualifier needed to distinguish sibling capabilities: `create_avatar`, `get_gallery_photos`, `mark_deleting`, or `delete_expired`. Keep the base canonical method public even when semantic constructors exist. The name must agree with the returned or mutated entity and cardinality. An owner/context argument does not replace a different target name: a media repository method returning a character is not `create_character(character)`. A persisted discriminator such as `source="catalog"` does not justify `create_catalog` unless “catalog” is itself the stable domain role exposed to tests. Keep the same domain vocabulary across aggregate and lower-level repositories; implementation details such as joins, storage backend, batch strategy, or “last asset” stay private.
 
 `create(**overrides)` generates only the minimally valid default resource: every required field/relationship receives a fresh in-constraint generated value; optional fields remain absent so model/store defaults apply; explicit genuinely case-specific overrides apply last. Review this against the actual table/resource contract—requiredness, nullability, defaults, keys, and body constraints—not against what an existing fixture happens to provide. For object/file repositories, ordinary `create()` generates a minimal valid key/body itself; tests supply them only when their value is the case.
 
@@ -59,6 +59,8 @@ await order_repository.create_pending()
 ```
 
 Do not write raw discriminator calls such as `create(media_type="avatar")` or `create(status="pending")` in tests. Each semantic method delegates to `create`, calculates fresh execution-time defaults, and applies defining fields last so `**overrides` cannot contradict its name. Use base `create(...)` explicitly for an intentionally nonstandard/contradictory edge state.
+
+Apply the same owner-relative rule across CRUD: prefer `get_one`, `get_many`, `count`, `update`, and `delete` when the repository has one unambiguous owned resource. A qualifier belongs only to a genuinely different target/state/outcome, not to the repository noun repeated for readability. A method that returns raw Redis members, object keys, database references, hashes, or index entries is not a domain query merely because its name contains a user/resource noun: return a typed domain value through `get_one`/`get_many`/`count` or remove the capability when tests do not need a contractual observation.
 
 `update` and `delete` target one explicit model/resource or stable identifier. Bulk variants accept explicit filters and return the affected count.
 
@@ -186,14 +188,14 @@ Repositories own persisted state; payload builders own in-memory request/message
 
 ## Compound-value matchers
 
-When the natural actual value is an object, dictionary, list, or nested structure, compare it as one whole value. Use exact literals for known leaves and `tests.cmp` matchers for dynamic constraints or the explicitly scoped partial comparison defined in [contracts.md](contracts.md#test-shape-and-assertions):
+When the natural actual value is an object, dictionary, list, or nested structure, start with native Python equality. Use exact dictionaries and lists for known structures; add `tests.cmp` leaves for dynamic scalar constraints or a structural matcher only for semantics native equality cannot express clearly:
 
 ```python
 assert actual_response.json() == {
     "id": AnyStr(),
     "name": AnyStr(length=10),
     "retry_count": AnyInt(lte=3),
-    "steps": OrderedList([{"name": "created", "position": 1}]),
+    "steps": [{"name": "created", "position": 1}],
     "tags": UnorderedList(["featured", AnyStr(length_gt=2)]),
 }
 
@@ -208,9 +210,9 @@ Matcher classes are ordinary allowed support classes, never fixtures or pytest t
 
 Matcher constructor validation compares only constraints the caller supplied. Never substitute finite numeric/string-length sentinels for an unbounded side: domains may exceed an arbitrary machine-width assumption, and a valid matcher such as `AnyInt(gt=2**63)` must remain constructible. Validate each present bound directly, then validate only present lower/upper pairs against each other.
 
-`Object(...)` (or one consistently named equivalent exposed by `tests.cmp`) compares an object/DTO as one natural value. By default it requires exactly the advertised public attributes and recursively compares their values with literals or nested matchers. Allow an optional exact type constraint only when the output type itself is public and contractual; using that type for `isinstance`-style matching does not permit constructing expected values, applying production defaults/validation, or reusing production serialization. Partial attribute matching must be explicit and is allowed only for an intentionally extensible public object whose declared subset is complete or a focused variation/edge case whose remaining stable attributes are already protected by the primary exact contract; it never silently ignores unknown stable fields in a closed primary contract.
+`Object(...)` (or one consistently named equivalent exposed by `tests.cmp`) compares an object/DTO as one natural value. By default it requires exactly the advertised public attributes and recursively compares their values with literals or nested matchers. Allow an optional exact type constraint only when the output type itself is public and contractual; using that type for `isinstance`-style matching does not permit constructing expected values, applying production defaults/validation, or reusing production serialization. Partial attribute matching must use a separately and explicitly named public matcher such as `PartialObject(...)`, never `Object(partial=True)`. The same naming rule applies to mappings: exact mappings are ordinary dictionaries and a partial matcher is named by its semantics, for example `PartialMapping(...)`, rather than configured with a boolean strictness switch. Partial matching remains limited to an intentionally extensible public object/container whose declared subset is complete or a focused variation/edge case whose remaining stable attributes are already protected by the primary exact contract; it never silently ignores unknown stable fields in a closed primary contract.
 
-`UnorderedList` preserves exact length and duplicate multiplicity with correct one-to-one matching. Use an ordinary list for exact ordered literals, `OrderedList` when matcher diagnostics/composition help, and `UnorderedList` only when order is genuinely not contractual.
+`UnorderedList` preserves exact length and duplicate multiplicity with correct one-to-one matching. Use an ordinary list for exact ordered values. `OrderedList` is appropriate when order is contractual and matcher composition or diagnostics materially help; do not wrap every compound item in a partial matcher merely to check one ordered field. Project that field with a list comprehension and compare ordinary lists when the ordered scalar projection is the focused property and complete item contracts are protected elsewhere. Use `UnorderedList` only when order is genuinely not contractual. Prefer `assert len(actual) == expected`, membership predicates, and comprehensions to dedicated `ListLength`, exclusion, or similar matchers that add no semantics.
 
 ## Time-dependent artifacts
 

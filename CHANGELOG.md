@@ -6,6 +6,109 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-31
+
+### Changed
+
+- Assertions are native-first: exact mappings/lists, cardinality, membership,
+  and focused scalar projections use ordinary Python before custom matchers.
+  `OrderedList` remains valid when contractual order benefits from matcher
+  composition or diagnostics; a one-field ordered projection instead uses a
+  list comprehension when complete item contracts are already protected.
+- Partial structural semantics are visible in matcher names such as
+  `PartialMapping`/`PartialObject`, never hidden behind `partial=True`. Exact
+  mappings remain dictionaries, and matchers that merely restate `len` or
+  membership are discouraged.
+- Public test-support APIs now start from the shortest canonical owner-relative
+  operation. Repository, Publisher, Collector, Service, Client, runner, and
+  builder names do not repeat their owning noun; qualifiers distinguish only
+  real sibling targets, states, outcomes, or cardinalities. The deterministic
+  `ENC001` check rejects cross-component private-member access.
+- Schema migration upgrade/downgrade remains a fixture bootstrap invariant.
+  Runtime legacy-data compatibility receives a public-behavior test only when
+  an authoritative product or operational requirement promises it; source
+  conversion branches alone do not create a contract.
+- Scenario completeness now calls out same-resource/different-principal
+  isolation explicitly. `WS001` rejects every empty WebSocket connection
+  context rather than only the nested handshake-exception spelling.
+- `SEM006`, `SEM010`, and `SEM011` were refined to audit these boundaries
+  without turning implementation vocabulary or matcher class names into a
+  per-project configuration surface.
+
+### Existing-project actions
+
+These actions are conditional and idempotent. Apply only those whose condition
+matches the current suite.
+
+#### PBB-MIG-0.7.0-01 — Native-first and explicit partial comparisons
+
+- **Supersedes:** `PBB-MIG-0.6.0-01`.
+- **Condition:** an exact mapping/list, simple cardinality/membership predicate,
+  or one-field ordered projection is expressed through a custom matcher without
+  adding semantics; a partial matcher hides its semantics behind a boolean
+  option; or actual compound data is still merged/deleted/overwritten before
+  comparison.
+- **Action:** replace exact matcher wrappers with ordinary dictionaries/lists
+  and simple predicates with `len`, membership, `all`, or comprehensions. Give
+  true partial matchers an explicitly partial public name and pass the complete
+  observed compound value. Keep `OrderedList` when order is contractual and its
+  matcher composition/diagnostics are useful; for a focused ordered field whose
+  complete item contract is protected elsewhere, compare native list
+  comprehensions.
+- **Do not:** weaken a closed primary contract, convert a multiplicity-sensitive
+  collection to a set, project unprotected stable fields, or remove
+  `OrderedList` merely because an ordinary list could also work.
+- **No-op when:** native structures/operators express simple checks, matchers add
+  real semantics, partiality is explicit in the public matcher name, and every
+  focused collection projection is already backed by complete item coverage.
+
+#### PBB-MIG-0.7.0-02 — Owner-relative support APIs and encapsulation
+
+- **Supersedes:** `PBB-MIG-0.6.0-02`.
+- **Condition:** a public support method mechanically repeats its owning domain
+  noun, exposes raw storage references, omits a canonical base CRUD operation,
+  or a support object calls another object's private member.
+- **Action:** start from the shortest canonical operation (`create`, `get_one`,
+  `get_many`, `count`, `update`, `delete`, `publish`, `collect_one`, `run_once`)
+  and add only the qualifier needed among siblings. Return typed domain values.
+  Expose the smallest truthful public collaborator capability or move cohesive
+  multi-object work to an aggregate owner.
+- **Do not:** rename a method after a caller/argument/discriminator, expose raw
+  keys/hashes/index members, make base `create` private because current cases
+  prefer semantic constructors, or silence `ENC001` by renaming underscores.
+- **No-op when:** owner context plus method name already communicates one
+  truthful domain operation/cardinality and all collaborator boundaries are
+  public, narrow, and typed.
+
+#### PBB-MIG-0.7.0-03 — Contractual compatibility and isolation
+
+- **Condition:** a collected test asserts a migration/conversion implementation
+  without an authoritative backward-compatibility promise; a promised legacy
+  behavior inspects raw storage instead of the public outcome; or a
+  principal-scoped operation lacks the same-resource/different-principal case.
+- **Action:** remove source-inferred compatibility cases, or—when an
+  authoritative requirement exists—arrange legacy state through a domain
+  repository/builder and assert only preserved public behavior/direct
+  artifacts. Add the missing isolation case for each operation whose result is
+  ownership-scoped.
+- **Do not:** remove database upgrade/downgrade bootstrap, infer a requirement
+  from current source, name a public-behavior test after its migration
+  algorithm, or manufacture inaccessible/corrupt states.
+- **No-op when:** migration lifecycle is fixture-owned, runtime compatibility is
+  tested only when promised, and every ownership-sensitive operation proves
+  cross-principal isolation.
+
+#### PBB-MIG-0.7.0-04 — Explicit WebSocket lifecycle outcomes
+
+- **Condition:** a collected test enters `connect()`/`websocket_connect()` with
+  a body containing only `pass`, including inside `pytest.raises`.
+- **Action:** make the test-owned adapter expose the natural accepted, denied,
+  close, or continuation outcome and assert that value directly.
+- **Do not:** invent an exception for a wire outcome, assert SDK internals, or
+  retain an empty context merely to trigger `__aenter__`/`__aexit__`.
+- **No-op when:** each connection context observes a meaningful public value or
+  behavior and no empty lifecycle body remains.
+
 ## [0.6.0] - 2026-08-31
 
 ### Changed
@@ -591,7 +694,8 @@ No project-file migration was required.
 - The shared black-box pytest policy, project onboarding, fallback discovery,
   and deterministic auditor.
 
-[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.3.0...v0.4.0
