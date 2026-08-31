@@ -126,6 +126,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 
 ## Audit result
 
+- Did a focused write/develop/repair/component-lint pass use repeatable `--scope` for the complete owning component and every changed shared-support path, while a promised whole-suite audit remained unscoped?
 - Did `scripts/lint_suite.py` run successfully, and did `scripts/audit_suite.py` preserve and reconcile every applicable semantic item including the explicit operation-and-scenario completeness checks in `SEM001`/`SEM006`?
 - Were warnings and manual-review items evaluated rather than ignored?
 - For a large full-suite audit, were independent surfaces optionally delegated while the primary agent retained census/policy/reconciliation?

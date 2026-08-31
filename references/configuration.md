@@ -113,7 +113,7 @@ When discovery finds a non-contract operation:
 
 Run `scripts/discover_project.py <project-root>` when `[tool.pytest-blackbox]` is absent or the user requests a refresh. The script inspects filenames, Python imports, dependency declarations, pytest settings, and existing test layout without importing project code. Auto mode uses the bundled fallback until the O capability is enabled and its toolchain is available; enhanced mode then adds library-backed requirement parsing, package-manager evidence, and gitignore-aware file evidence without weakening the safety boundary.
 
-Run the bundled scripts with an interpreter new enough to parse the project's Python syntax. They use stdlib `tomllib` on Python 3.11+ and fall back to the `tomli` backport on older Python. If neither is available they stop policy parsing with a clear diagnostic rather than installing a dependency or mutating the environment. Discovery reports how many Python files its interpreter could not parse.
+Run the bundled scripts with an interpreter new enough to parse the project's Python syntax. They use stdlib `tomllib` on Python 3.11+ and fall back to the `tomli` backport on older Python. If neither is available they stop policy parsing with a clear diagnostic rather than installing a dependency or mutating the environment. When any scanned Python file cannot be parsed, discovery reports representative paths, returns a failing status, and withholds the policy proposal until rerun with a compatible interpreter.
 
 Discovery must not:
 
@@ -139,7 +139,7 @@ Audit output has two deliberately separate sections:
 - semantic review: preserved `MANUAL` items, including every applicable `SEM*` requirement, which the static tool cannot prove;
 - no result for an O capability that is not enabled.
 
-`scripts/lint_suite.py` emits only deterministic diagnostics. `scripts/audit_suite.py` emits the same diagnostics plus semantic review. Both support bundled fallback and enhanced modes and use Ruff-like `path:line:column: CODE message` output; read [tooling.md](tooling.md) for mode and dependency details.
+`scripts/lint_suite.py` emits only deterministic diagnostics. `scripts/audit_suite.py` emits the same diagnostics plus semantic review. Both support bundled fallback/enhanced modes and repeatable test-path scopes, and use Ruff-like `path:line:column: CODE message` output; read [tooling.md](tooling.md) for mode, scope, and dependency details.
 
 Examples:
 

@@ -7,41 +7,81 @@ from pathlib import Path
 from .models import Finding, Policy
 
 
-def _has_websocket_surface(tests_dir: Path) -> bool:
-    for path in tests_dir.rglob("*.py"):
-        if "websocket" in path.name.lower():
+def _scoped_python_files(tests_dir: Path, scopes: tuple[Path, ...]) -> list[Path]:
+    if not scopes:
+        return sorted(tests_dir.rglob("*.py"))
+    files: set[Path] = set()
+    for scope in scopes:
+        if scope.is_file():
+            files.add(scope)
+        else:
+            files.update(scope.rglob("*.py"))
+    return sorted(files)
+
+
+def _has_websocket_surface(tests_dir: Path, scopes: tuple[Path, ...]) -> bool:
+    for path in _scoped_python_files(tests_dir, scopes):
+        if any("websocket" in part.lower() for part in path.parts):
             return True
-        try:
-            if "websocket" in path.read_text(encoding="utf-8").lower():
-                return True
-        except (OSError, UnicodeError):
-            continue
     return False
 
 
-def _named_surface(tests_dir: Path, *tokens: str) -> Path | None:
-    candidates = [
-        path
-        for path in tests_dir.rglob("*")
-        if path.is_dir() and any(token in path.name.lower() for token in tokens)
-    ]
-    return min(
-        candidates,
+def _named_surfaces(tests_dir: Path, *tokens: str) -> tuple[Path, ...]:
+    candidates = sorted(
+        (
+            path
+            for path in tests_dir.rglob("*")
+            if path.is_dir() and any(token in path.name.lower() for token in tokens)
+        ),
         key=lambda path: (len(path.relative_to(tests_dir).parts), str(path)),
-        default=None,
+    )
+    shallowest: dict[str, Path] = {}
+    for path in candidates:
+        key = next(token for token in tokens if token in path.name.lower())
+        shallowest.setdefault(key, path)
+    return tuple(shallowest.values())
+
+
+def _intersects_scopes(path: Path, scopes: tuple[Path, ...]) -> bool:
+    return not scopes or any(
+        path == scope or path in scope.parents or scope in path.parents
+        for scope in scopes
     )
 
 
-def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Finding]:
+def _semantic_path(root: Path, tests_dir: Path, scopes: tuple[Path, ...]) -> str:
+    if len(scopes) == 1:
+        return str(scopes[0].relative_to(root))
+    return str(tests_dir.relative_to(root))
+
+
+def _scope_has_token(scopes: tuple[Path, ...], *tokens: str) -> bool:
+    return any(
+        any(token in part.lower() for token in tokens)
+        for scope in scopes
+        for part in scope.parts
+    )
+
+
+def semantic_findings(
+    root: Path,
+    tests_dir: Path,
+    policy: Policy,
+    *,
+    scopes: tuple[Path, ...] = (),
+) -> list[Finding]:
+    full_scope = not scopes or tests_dir in scopes
+    semantic_path = _semantic_path(root, tests_dir, scopes)
+    scope_label = "complete suite" if full_scope else "selected contract scope"
     findings = [
         Finding(
-            path=str(tests_dir.relative_to(root)),
+            path=semantic_path,
             line=1,
             severity="MANUAL",
             code="SEM001",
             message=(
-                "reconcile a transient contract-evidence matrix: complete operation "
-                "census from final framework registrations/actions, applicable policy "
+                f"reconcile a transient contract-evidence matrix for the {scope_label}: "
+                "operation census from final framework registrations/actions, applicable policy "
                 "depth, primary node/categories, and every application-owned observable "
                 "outcome class within the active policy boundary; after the final case "
                 "set is known, reconcile names bottom-up so each category covers all of "
@@ -52,12 +92,13 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
     ]
     findings.append(
         Finding(
-            path=str(tests_dir.relative_to(root)),
+            path=semantic_path,
             line=1,
             severity="MANUAL",
             code="SEM006",
             message=(
-                "prove scenario completeness, not only operation presence: derive "
+                f"prove scenario completeness for the {scope_label}, not only operation "
+                "presence: derive "
                 "expected truth from authoritative requirements and inspect "
                 "application-owned source branches only for candidate gaps; map every "
                 "confirmed public outcome, state partition, compound ownership/"
@@ -78,7 +119,7 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
     )
     findings.append(
         Finding(
-            path=str(tests_dir.relative_to(root)),
+            path=semantic_path,
             line=1,
             severity="MANUAL",
             code="SEM010",
@@ -99,7 +140,7 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
     )
     findings.append(
         Finding(
-            path=str(tests_dir.relative_to(root)),
+            path=semantic_path,
             line=1,
             severity="MANUAL",
             code="SEM011",
@@ -122,7 +163,7 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
         for selector, decision in policy.coverage_rules
         if decision == "focused"
     )
-    if focused:
+    if focused and full_scope:
         findings.append(
             Finding(
                 path=str(tests_dir.relative_to(root)),
@@ -135,11 +176,11 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
                 ),
             )
         )
-    schedulers = _named_surface(tests_dir, "scheduler")
-    if schedulers is not None:
+    schedulers = _named_surfaces(tests_dir, "scheduler")
+    if any(_intersects_scopes(surface, scopes) for surface in schedulers):
         findings.append(
             Finding(
-                path=str(schedulers.relative_to(root)),
+                path=semantic_path,
                 line=1,
                 severity="MANUAL",
                 code="SEM003",
@@ -149,11 +190,12 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
                 ),
             )
         )
-    workers = _named_surface(tests_dir, "worker", "consumer")
-    if workers is not None:
+    workers = _named_surfaces(tests_dir, "worker", "consumer")
+    worker_selected = any(_intersects_scopes(surface, scopes) for surface in workers)
+    if worker_selected:
         findings.append(
             Finding(
-                path=str(workers.relative_to(root)),
+                path=semantic_path,
                 line=1,
                 severity="MANUAL",
                 code="SEM004",
@@ -164,9 +206,20 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
                 ),
             )
         )
+    runtime_selected = (
+        full_scope
+        or any(scope == surface for scope in scopes for surface in workers)
+        or _scope_has_token(
+            scopes,
+            "runtime",
+            "settlement",
+            "dispatch",
+        )
+    )
+    if worker_selected and runtime_selected:
         findings.append(
             Finding(
-                path=str(workers.relative_to(root)),
+                path=semantic_path,
                 line=1,
                 severity="MANUAL",
                 code="SEM008",
@@ -178,9 +231,15 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
                 ),
             )
         )
+    topology_selected = (
+        (full_scope and bool(workers))
+        or any(scope == surface for scope in scopes for surface in workers)
+        or _scope_has_token(scopes, "broker", "messaging", "topology", "environment")
+    )
+    if topology_selected:
         findings.append(
             Finding(
-                path=str(workers.relative_to(root)),
+                path=semantic_path,
                 line=1,
                 severity="MANUAL",
                 code="SEM009",
@@ -194,10 +253,10 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
                 ),
             )
         )
-    if _has_websocket_surface(tests_dir):
+    if _has_websocket_surface(tests_dir, scopes):
         findings.append(
             Finding(
-                path=str(tests_dir.relative_to(root)),
+                path=semantic_path,
                 line=1,
                 severity="MANUAL",
                 code="SEM005",
@@ -217,7 +276,7 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
     if policy.test_concurrency:
         findings.append(
             Finding(
-                path=str(tests_dir.relative_to(root)),
+                path=semantic_path,
                 line=1,
                 severity="MANUAL",
                 code="SEM007",

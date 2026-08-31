@@ -925,11 +925,7 @@ class Audit:
                 and (dotted_name(item.context_expr.func) or "").rsplit(".", 1)[-1]
                 in {"connect", "websocket_connect"}
             ]
-            if (
-                connects
-                and len(node.body) == 1
-                and isinstance(node.body[0], ast.Pass)
-            ):
+            if connects and len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
                 self.add(
                     "ERROR",
                     "WS001",
@@ -1129,26 +1125,39 @@ class Audit:
         path: Path,
         tree: ast.Module,
     ) -> None:
-        for node in ast.walk(tree):
-            if not (
-                isinstance(node, ast.Attribute)
-                and node.attr.startswith("_")
-                and not node.attr.startswith("__")
-                and isinstance(node.value, ast.Attribute)
-                and node.value.attr.startswith("_")
-                and isinstance(node.value.value, ast.Name)
-                and node.value.value.id in {"self", "cls"}
-            ):
-                continue
-            self.add(
-                "ERROR",
-                "ENC001",
-                path,
-                node.lineno,
-                "support component reaches into a collaborator's private member; "
-                "expose a truthful narrow public capability on the owner or move the "
-                "cohesive operation to an aggregate owner",
-            )
+        public_support_classes = (
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef)
+            and not node.name.startswith(("_", "Test"))
+        )
+        for class_node in public_support_classes:
+            for method in class_node.body:
+                if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if method.name.startswith("__") and method.name.endswith("__"):
+                    continue
+                for node in ast.walk(method):
+                    if not isinstance(node, ast.Call) or not isinstance(
+                        node.func, ast.Attribute
+                    ):
+                        continue
+                    if not node.func.attr.startswith("_") or node.func.attr.startswith(
+                        "__"
+                    ):
+                        continue
+                    owner = node.func.value
+                    if isinstance(owner, ast.Name) and owner.id in {"self", "cls"}:
+                        continue
+                    self.add(
+                        "ERROR",
+                        "ENC001",
+                        path,
+                        node.lineno,
+                        "public support component calls a collaborator's private "
+                        "member; expose a truthful narrow public capability on the "
+                        "owner or move the cohesive operation to an aggregate owner",
+                    )
 
     def audit_matcher_bounds(self, path: Path, tree: ast.Module) -> None:
         relative_parts = path.relative_to(self.tests_dir).parts

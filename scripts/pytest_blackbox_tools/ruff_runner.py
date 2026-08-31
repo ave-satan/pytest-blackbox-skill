@@ -73,7 +73,7 @@ def _config_text() -> str:
     return "\n".join(lines) + "\n"
 
 
-def run_ruff(root: Path, tests_dir: Path) -> list[Finding]:
+def run_ruff(root: Path, targets: tuple[Path, ...]) -> list[Finding]:
     with TemporaryDirectory(prefix="pytest-blackbox-ruff-") as directory:
         config = Path(directory) / "ruff.toml"
         config.write_text(_config_text(), encoding="utf-8")
@@ -87,7 +87,7 @@ def run_ruff(root: Path, tests_dir: Path) -> list[Finding]:
                 str(config),
                 "--output-format",
                 "json",
-                str(tests_dir),
+                *(str(target) for target in targets),
             ],
             cwd=root,
             check=False,

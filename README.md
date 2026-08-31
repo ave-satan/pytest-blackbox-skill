@@ -43,7 +43,7 @@ project's existing `pyproject.toml` rather than in a separate plugin config.
 | `lint` | Run deterministic machine-checkable policy diagnostics. |
 | `develop` | Implement application behavior through a contract-first test-first workflow. |
 | `write` | Add test-only black-box contract coverage without changing production. |
-| `repair` | Diagnose and repair existing failing or nondeterministic tests. |
+| `repair` | Repair failing/nondeterministic tests or authorized green structural conformance issues. |
 | `review` | Perform a focused, read-only review of tests or a test diff. |
 | `upgrade` | Apply release-specific project migrations from the changelog. |
 | `audit` | Audit a complete suite or explicitly named full component surface. |
@@ -186,6 +186,8 @@ The plugin includes bundled fallback commands and an opt-in enhanced mode:
 python scripts/discover_project.py /path/to/project
 python scripts/lint_suite.py /path/to/project
 python scripts/audit_suite.py /path/to/project
+python scripts/audit_suite.py /path/to/project \
+  --scope tests/test_api_v1/test_orders/test_create_order
 ```
 
 - `discover_project.py` gathers onboarding evidence without importing project
@@ -193,15 +195,22 @@ python scripts/audit_suite.py /path/to/project
   project.
 - `lint_suite.py` emits mechanically provable diagnostics in Ruff-like text or
   JSON.
-- `audit_suite.py` adds the preserved semantic review section, including every
-  applicable `SEM*` requirement and distinct operation/scenario completeness
-  reconciliation.
+- `audit_suite.py` adds every `SEM*` requirement applicable to its selected
+  scope or complete-suite boundary, including distinct operation/scenario
+  completeness reconciliation.
+- Repeatable `--scope` paths keep lint/audit output and semantic reconciliation
+  inside selected test components while still indexing the complete suite for
+  cross-file evidence. Omit scope for a whole-suite audit.
 
 All three commands support `--mode auto|fallback|enhanced`. Auto mode stays on
 the bundled fallback until `dependency_group` is confirmed and the
 enhanced toolchain is available. See
 [references/tooling.md](references/tooling.md) for exact requirements and mode
 semantics.
+
+Discovery fails closed and withholds its policy proposal when the active Python
+interpreter cannot parse every scanned Python file. Run it through the project's
+compatible managed interpreter.
 
 The helpers require Python 3.10 or newer. On Python 3.11+ fallback uses only the
 standard library; Python 3.10 requires the `tomli` compatibility dependency,

@@ -6,8 +6,28 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-31
+
 ### Changed
 
+- `audit_suite.py` and `lint_suite.py` now accept repeatable test-path
+  `--scope` arguments. Scoped runs still index the complete suite for cross-file
+  analysis but report only selected diagnostics and intersecting semantic
+  surfaces; omitting scope preserves the complete-suite audit.
+- `write`, `develop`, and `repair` now use scoped semantic reconciliation.
+  Complete read-only audit is reserved for an explicit whole-suite or complete
+  component request, so ordinary focused work no longer inherits unrelated
+  `SEM*` obligations.
+- `repair` now supports an authorized green behavior-preserving structural
+  correction through green-before/after evidence instead of requiring an
+  artificial failing test.
+- Discovery now fails closed, lists representative unparseable Python paths,
+  and withholds its policy proposal until rerun with a compatible interpreter.
+- `ENC001` now proves calls from public support classes to collaborator-private
+  methods without assuming the collaborator field itself is private, while
+  private implementation classes and own private methods remain allowed.
+- The shared policy was reduced to cross-workflow invariants and routing; the
+  detailed procedures remain in task-specific references.
 - Coverage expansion now ends with mandatory bottom-up naming reconciliation:
   individual cases map to a category whose filename describes the complete
   current case set, and every terminal component continues to map one-to-one to
@@ -21,6 +41,23 @@ apply only relevant migrations without rerunning a full suite audit.
   reconciliation after the final scoped case set is known.
 
 ### Existing-project actions
+
+#### PBB-MIG-0.8.0-02 — Scope focused pytest-blackbox automation
+
+- **Condition:** project automation or agent instructions run unscoped
+  `audit_suite.py`/`lint_suite.py` for a focused write, develop, repair, or
+  component-local lint task; or a green structural test refactor is blocked
+  solely because no failing pytest case exists.
+- **Action:** pass each complete owning test component and every changed shared
+  support path through repeatable `--scope` arguments and keep the task's
+  semantic matrix limited to those public operations/components. For a green
+  structural correction, record the policy finding/objective and relevant
+  green baseline, then prove green after the change.
+- **Do not:** scope a promised whole-suite audit, select only convenient files
+  inside a component whose complete coverage was requested, stop indexing
+  shared support, or manufacture a red result for behavior-preserving work.
+- **No-op when:** focused automation already supplies complete owning component
+  paths and whole-suite audits still run without scope.
 
 #### PBB-MIG-0.8.0-01 — Reconcile expanded test-surface names
 
@@ -728,7 +765,8 @@ No project-file migration was required.
 - The shared black-box pytest policy, project onboarding, fallback discovery,
   and deterministic auditor.
 
-[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.4.0...v0.5.0

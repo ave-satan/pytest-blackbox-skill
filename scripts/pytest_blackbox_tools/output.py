@@ -17,6 +17,8 @@ def _line(finding: Finding) -> str:
 
 def render_concise(result: CheckResult) -> str:
     lines = [f"pytest-blackbox checks: {result.mode}"]
+    if result.scopes:
+        lines.append("scope: " + ", ".join(result.scopes))
     lines.extend(_line(finding) for finding in result.diagnostics)
     if result.semantic:
         if len(lines) > 1:
@@ -41,6 +43,7 @@ def render_json(result: CheckResult) -> str:
     return json.dumps(
         {
             "mode": result.mode,
+            "scopes": list(result.scopes),
             "diagnostics": [asdict(item) for item in result.diagnostics],
             "semantic": [asdict(item) for item in result.semantic],
             "summary": {

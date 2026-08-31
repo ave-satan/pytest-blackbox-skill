@@ -31,6 +31,17 @@ def _parse_args(argv: Iterable[str] | None, *, command: str) -> argparse.Namespa
         action="store_true",
         help="return a failing exit code for warnings as well as errors",
     )
+    parser.add_argument(
+        "--scope",
+        action="append",
+        default=[],
+        type=Path,
+        metavar="PATH",
+        help=(
+            "limit reported diagnostics and semantic review to a test file or "
+            "directory; repeat for multiple paths"
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -45,6 +56,7 @@ def main(
         args.project_root.resolve(),
         requested_mode=args.mode,
         include_semantic=include_semantic,
+        requested_scopes=tuple(args.scope),
     )
     renderer = render_json if args.output_format == "json" else render_concise
     print(renderer(result))

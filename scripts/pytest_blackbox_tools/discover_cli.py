@@ -47,7 +47,13 @@ def discover(root: Path, requested_mode: str) -> tuple[dict[str, Any], int]:
     use_enhanced = dependency_opt_in and (
         requested_mode == "enhanced" or (requested_mode == "auto" and status.complete)
     )
-    exit_code = 2 if result.get("pyproject_error") or result.get("policy_errors") else 0
+    exit_code = (
+        2
+        if result.get("pyproject_error")
+        or result.get("policy_errors")
+        or result.get("scan_errors")
+        else 0
+    )
     if requested_mode == "enhanced" and not dependency_opt_in:
         result["enhanced_error"] = (
             "dependency_group is not enabled; enhanced mode requires onboarding opt-in"
@@ -86,6 +92,9 @@ def _render_text(result: dict[str, Any]) -> str:
     if result.get("policy_errors"):
         lines.append("Policy errors:")
         lines.extend(f"  - {item}" for item in result["policy_errors"])
+    if result.get("scan_errors"):
+        lines.append("Discovery scan errors:")
+        lines.extend(f"  - {item}" for item in result["scan_errors"])
     if result.get("enhanced_error"):
         lines.append(f"Enhanced discovery unavailable: {result['enhanced_error']}")
     if result["nested_pyprojects"]:
@@ -107,7 +116,7 @@ def _render_text(result: dict[str, Any]) -> str:
         )
     else:
         lines.append(
-            "\nProposed patch unavailable: fix the listed policy errors first; "
+            "\nProposed patch unavailable: resolve the listed discovery blockers first; "
             "discovery will not replace valid recorded choices with defaults."
         )
     managed = result["optional_capabilities"]["managed_dependencies"]

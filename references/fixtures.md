@@ -88,7 +88,7 @@ Fixture names form a public test API:
 
 - public only when requested directly by a test or `usefixtures`;
 - `_`-prefixed when consumed only by fixtures, bootstrap, teardown, ordering, or autouse behavior;
-- test function signatures never contain `_fixture` arguments.
+- test functions never request underscore-prefixed fixtures; an underscore-prefixed fixture dependency is private to the fixture/bootstrap graph.
 
 Name a public fixture after the capability it actually returns. A functional `ChatWebSocketClient` is exposed as `chat_websocket_client`, not the deceptively generic `websocket_client`; reserve a generic fixture name for a genuinely generic transport/mechanism. Authorization or another stable baseline may be expressed by a concise qualifier such as `authorized_chat_websocket_client`.
 

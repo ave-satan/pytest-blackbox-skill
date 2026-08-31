@@ -182,11 +182,11 @@ def package_manager_names(root: Path, data: Mapping[str, Any]) -> list[str]:
     return sorted(names)
 
 
-def python_facts(root: Path) -> tuple[Counter[str], int, bool, int]:
+def python_facts(root: Path) -> tuple[Counter[str], int, bool, tuple[str, ...]]:
     imports: Counter[str] = Counter()
     async_defs = 0
     compose_literal = False
-    parse_failures = 0
+    parse_failures: list[str] = []
     for path in safe_paths(root, "*.py"):
         if path.name.lower() in SENSITIVE_PYTHON_NAMES:
             continue
@@ -194,7 +194,7 @@ def python_facts(root: Path) -> tuple[Counter[str], int, bool, int]:
             source = path.read_text(encoding="utf-8")
             tree = ast.parse(source, filename=str(path))
         except (OSError, UnicodeError, SyntaxError):
-            parse_failures += 1
+            parse_failures.append(str(path.relative_to(root)))
             continue
         compose_literal = compose_literal or "docker compose" in source.lower()
         for node in ast.walk(tree):
@@ -205,7 +205,7 @@ def python_facts(root: Path) -> tuple[Counter[str], int, bool, int]:
                     imports[alias.name.split(".", 1)[0]] += 1
             elif isinstance(node, ast.ImportFrom) and node.module:
                 imports[node.module.split(".", 1)[0]] += 1
-    return imports, async_defs, compose_literal, parse_failures
+    return imports, async_defs, compose_literal, tuple(parse_failures)
 
 
 def layout_facts(root: Path) -> dict[str, Any]:
@@ -303,8 +303,18 @@ def discover(root: Path) -> dict[str, Any]:
             proposal["dependency_group"] = managed_dependency_group
         if isinstance(policy.get("coverage"), list):
             proposal["coverage"] = policy["coverage"]
+    scan_errors: list[str] = []
+    if parse_failures:
+        examples = ", ".join(parse_failures[:10])
+        remainder = len(parse_failures) - 10
+        suffix = f" and {remainder} more" if remainder > 0 else ""
+        scan_errors.append(
+            f"{len(parse_failures)} Python file(s) could not be parsed: "
+            f"{examples}{suffix}; rerun discovery with an interpreter that supports "
+            "the project's Python syntax"
+        )
     rendered_proposal: dict[str, object] | None = proposal
-    if pyproject_error or (configured and policy_errors):
+    if pyproject_error or (configured and policy_errors) or scan_errors:
         rendered_proposal = None
     return {
         "project_root": str(root),
@@ -313,11 +323,13 @@ def discover(root: Path) -> dict[str, Any]:
         "nested_pyprojects": [str(path) for path in nested[:20]],
         "configured": configured,
         "policy_errors": policy_errors,
+        "scan_errors": scan_errors,
         "facts": {
             "layout": layout,
             "async_functions": async_defs,
             "runtime": "async-capable" if async_defs else "sync-only-observed",
-            "python_parse_failures": parse_failures,
+            "python_parse_failures": len(parse_failures),
+            "python_parse_failure_examples": list(parse_failures[:10]),
             "sqlalchemy": "sqlalchemy" in dependencies or bool(imports["sqlalchemy"]),
             "http_clients": [
                 name
@@ -335,7 +347,9 @@ def discover(root: Path) -> dict[str, Any]:
             "package_managers": package_managers,
         },
         "proposal": rendered_proposal,
-        "proposal_blocked": bool(pyproject_error or (configured and policy_errors)),
+        "proposal_blocked": bool(
+            pyproject_error or (configured and policy_errors) or scan_errors
+        ),
         "optional_capabilities": {
             "managed_dependencies": {
                 "config_key": "dependency_group",

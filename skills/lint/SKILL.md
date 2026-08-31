@@ -10,6 +10,10 @@ Read the complete [shared policy](../../core/POLICY.md) and
 `../../scripts/lint_suite.py <project-root>` in auto mode unless the user
 explicitly requests fallback or enhanced mode.
 
+When the user names files or one component, pass each owning test path through
+`--scope`; omit scope only for an explicitly project-wide lint pass. The checker
+still indexes the complete suite for cross-file evidence.
+
 Report the selected mode and every error or warning. This workflow covers only
 mechanically provable rules: it does not emit `SEM*` findings, inventory public
 contracts, or establish suite completeness. If the requested conclusion needs

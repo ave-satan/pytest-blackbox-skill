@@ -34,3 +34,4 @@ class CheckResult:
     mode: str
     diagnostics: tuple[Finding, ...]
     semantic: tuple[Finding, ...]
+    scopes: tuple[str, ...] = ()
