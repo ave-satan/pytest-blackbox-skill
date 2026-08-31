@@ -6,6 +6,40 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+### Changed
+
+- Coverage expansion now ends with mandatory bottom-up naming reconciliation:
+  individual cases map to a category whose filename describes the complete
+  current case set, and every terminal component continues to map one-to-one to
+  its public operation or independently invokable component.
+- A stale historical filename is no longer preserved merely because new cases
+  fit there approximately. Rename a still-cohesive touched category to its
+  narrowest truthful shared behavior, or split genuinely different cohesive
+  aspects. This local correction is not treated as an unauthorized broad layout
+  refactor, including under a mature preserved layout.
+- `SEM001` and the `write`, `develop`, and `audit` workflows now perform this
+  reconciliation after the final scoped case set is known.
+
+### Existing-project actions
+
+#### PBB-MIG-0.8.0-01 — Reconcile expanded test-surface names
+
+- **Condition:** a category file or terminal component was named for an earlier
+  narrower case set and now contains cases outside that name, or newly added
+  cases were placed in the nearest plausible file without re-evaluating the
+  resulting full node IDs.
+- **Action:** inventory every case in the touched terminal component and
+  reconcile names bottom-up. Keep accurate case names; rename a cohesive
+  category/component to the narrowest behavior covering all assigned cases, or
+  split distinct cohesive aspects. Update imports and collection selectors
+  affected by that local move.
+- **Do not:** keep a stale historical name to minimize the diff, replace it with
+  vague `test_behavior`/`test_success`/`test_technical`, create a file per case,
+  merge independently invokable operations, or refactor unrelated test groups.
+- **No-op when:** every touched category filename truthfully covers its complete
+  current case set and every terminal component still maps exactly one public
+  operation or independently invokable component.
+
 ## [0.7.0] - 2026-08-31
 
 ### Changed

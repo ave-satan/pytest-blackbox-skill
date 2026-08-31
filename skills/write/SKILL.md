@@ -7,7 +7,7 @@ description: Design and add new black-box pytest contract tests for Python appli
 
 Read the complete [shared policy](../../core/POLICY.md) before acting. If `[tool.pytest-blackbox]` is absent, perform the shared onboarding workflow before changing tests.
 
-Inventory the requested contract surface, create the transient evidence matrix, and read only the shared references implicated by the work. Add the smallest complete set of public-boundary tests and support code, run focused tests, deterministic lint, and semantic audit/reconciliation, then report the exact coverage boundary and evidence.
+Inventory the requested contract surface, create the transient evidence matrix, and read only the shared references implicated by the work. Add the smallest complete set of public-boundary tests and support code. Once the final scoped case set is known, reconcile function, category-file, and terminal-component names bottom-up; a local rename/split made necessary by the added cases is part of this task, not an unrelated suite refactor. Then run focused tests, deterministic lint, and semantic audit/reconciliation and report the exact coverage boundary and evidence.
 
 Do not change production behavior. If the new tests expose an application defect, preserve the meaningful red evidence and report it; continue into production only through a separately authorized `develop` task. For a future contract, one coarse collection/missing-symbol/`404` result proves only absent registration. Stop at that honest registration-only red, report that scenario-oracle strength remains unverified, and do not add a production skeleton or describe the whole matrix as meaningfully red without production authorization.
 

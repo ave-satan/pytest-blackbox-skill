@@ -227,6 +227,8 @@ class TestUnavailableCharacters:
 
 Treat the full node ID as the readable name: directories identify surface and operation, filename identifies category, function identifies the remaining rule, and parameter ID identifies the concrete variant.
 
+Names are derived from the current complete case set, not frozen when the first test is written. After adding or removing cases, read the resulting node IDs bottom-up: each function/parameter names its case, the filename states the narrowest cohesive behavior shared by every case in that module, and the terminal directory still identifies exactly one public operation or independently invokable component. A name that described the original subset but not the expanded set is stale even when every individual test name remains accurate.
+
 - Primary business contract: `test_contract`.
 - Other business rules: short observable verb phrases such as `test_excludes_unavailable` or `test_preserves_order`.
 - Access: `test_unauthenticated`, `test_authorized`.
@@ -402,7 +404,7 @@ tests/
 
 Three directories below `tests/` is the standard-layout maximum: functional group, optional organization, terminal operation/component. Every test-hierarchy directory starts with `test_`. Root support packages such as `fixtures/`, `environment/`, `repositories/`, `messaging/`, `services/`, `cmp/`, and `generators/` are not test groups.
 
-The hierarchy and common category meanings are an adaptive default, not a reason to mass-move a mature coherent suite. With `layout = "preserve"`, retain an established unambiguous vocabulary. Category filename aliases are not separately configurable: a behavior-specific filename follows from the public contract aspect rather than a user-maintained name map. A broad layout refactor requires explicit authorization.
+The hierarchy and common category meanings are an adaptive default, not a reason to mass-move a mature coherent suite. With `layout = "preserve"`, retain an established unambiguous vocabulary. Category filename aliases are not separately configurable: a behavior-specific filename follows from the public contract aspect rather than a user-maintained name map. A broad unrelated layout refactor requires explicit authorization; renaming or splitting a touched category/component whose expanded case set made its old name false is ordinary local conformance work.
 
 Choose every category filename by the public behavior it groups. The primary contract is not automatically business logic and belongs in the category that accurately names what it proves:
 
@@ -414,7 +416,9 @@ Choose every category filename by the public behavior it groups. The primary con
 - emitted/suppressed metrics in `test_metrics.py` when present;
 - another cohesive public contract aspect in a concise `test_<behavior>.py`, such as `test_connection.py` for a WebSocket route or `test_registration.py` for an explicitly selected registration contract.
 
-Use one category for a cohesive family of cases, not a separate filename per case, parameter, or outcome. Never use `test_business_logic.py` as a generic primary-success file, and do not create `test_success.py`, `test_happy_path.py`, `test_works.py`, vague `test_behavior.py`/`test_technical.py`, or empty category files. Prefer an established precise term over inventing a synonym. With a preserved mature layout, adapt an already unambiguous equivalent rather than renaming files without explicit authorization. Never substitute another endpoint, smoke test, access case, validation row, workflow, or fixture bootstrap for the operation's own primary contract.
+Use one category for a cohesive family of cases, not a separate filename per case, parameter, or outcome. Before finishing any scope expansion, compare the filename with the full resulting case list. If new cases broaden one still-cohesive behavior, rename the module to the narrowest truthful shared aspect; if they introduce a second independently cohesive aspect, split the module. For example, a file initially named for replay becomes stale when it also owns live delivery, retention, scoping, and fan-out; choose a truthful delivery-level category or split only when those aspects have genuinely separate contracts. Never keep the historical name merely to minimize the diff or place the new cases in whichever existing file is convenient.
+
+Never use `test_business_logic.py` as a generic primary-success file, and do not create `test_success.py`, `test_happy_path.py`, `test_works.py`, vague `test_behavior.py`/`test_technical.py`, or empty category files. Prefer an established precise term over inventing a synonym. With a preserved mature layout, adapt an already unambiguous equivalent rather than renaming untouched files without explicit authorization. Never substitute another endpoint, smoke test, access case, validation row, workflow, or fixture bootstrap for the operation's own primary contract.
 
 Classify by the meaning of the contract, not merely by the fact that the response is error-shaped. A domain rejection belongs with the rule that produces it; an infrastructure/dependency/protocol failure belongs with errors. Preserve a mature layout whose ownership is already coherent instead of starting a mass rename solely to adopt this vocabulary.
 

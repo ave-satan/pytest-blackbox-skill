@@ -43,7 +43,10 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
                 "reconcile a transient contract-evidence matrix: complete operation "
                 "census from final framework registrations/actions, applicable policy "
                 "depth, primary node/categories, and every application-owned observable "
-                "outcome class within the active policy boundary"
+                "outcome class within the active policy boundary; after the final case "
+                "set is known, reconcile names bottom-up so each category covers all of "
+                "its cases and each terminal component still maps one-to-one to its "
+                "public operation/component rather than retaining a stale historical name"
             ),
         )
     ]
