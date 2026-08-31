@@ -68,6 +68,40 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
             ),
         )
     )
+    findings.append(
+        Finding(
+            path=str(tests_dir.relative_to(root)),
+            line=1,
+            severity="MANUAL",
+            code="SEM010",
+            message=(
+                "verify partial structural checks are limited to a focused variation/edge "
+                "whose remainder is protected or an intentionally extensible natural "
+                "container with a complete application-owned subset; pass the complete "
+                "observation to a matcher that requires declared elements; "
+                "do not project selected fields or delete/merge/overwrite ignored values; "
+                "normalize only the complete container when equality requires it, preserve "
+                "contractual multiplicity, and keep closed primary values exact"
+            ),
+        )
+    )
+    findings.append(
+        Finding(
+            path=str(tests_dir.relative_to(root)),
+            line=1,
+            severity="MANUAL",
+            code="SEM011",
+            message=(
+                "verify every public domain-facing test-support class, fixture, and "
+                "method uses its "
+                "role plus a truthful domain action/target/state/outcome and cardinality; "
+                "keep storage, transport, discriminator, caller-scenario, and optimization "
+                "details private, with generic methods only for one unambiguous contract; "
+                "generic structural/protocol primitives use precise abstraction-level "
+                "names without child-domain defaults"
+            ),
+        )
+    )
     focused = sorted(
         selector
         for selector, decision in policy.coverage_rules

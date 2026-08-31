@@ -54,6 +54,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - For rendered HTML/SSR, are all relevant application-owned view fields, echoed identifiers, action/CSRF state, and result/error partitions covered without snapshotting dependency-generated markup?
 - Are separately bound results named `actual`/`actual_*` and expectations `expected`/`expected_*`?
 - Are compound values compared whole and independent observations kept separate without a manufactured aggregate?
+- Is partial structural comparison limited to a focused variation/edge case whose remainder is already protected or an intentionally extensible natural container whose declared subset is the complete application-owned contract? Does the matcher receive the complete observed value and require every declared element without a selected-field projection or deleting, merging, or overwriting ignored values? If normalization is necessary, is the complete natural container and contractual multiplicity preserved while closed primary values remain exact?
 - Does every assertion remain an explicit `assert`, with builders/matchers rather than assertion helpers?
 - Is `pytest.raises` limited to naturally exception-based public boundaries, with wire errors kept as values and unexpected tracebacks preserved?
 
@@ -72,6 +73,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Are fixture-only dependencies private and absent from test signatures?
 - Are cleanup and ordering explicit, with no meaningless `del` or pass-through fixture aliases?
 - Does shared support avoid imports and hardcoded route/discriminator/topology/expected literals from narrower or sibling test groups and unsupported production internals?
+- Do all public domain-facing support classes, fixtures, and methods use role-appropriate domain action/target/state/outcome names that truthfully describe their result and cardinality, with technical storage/transport/discriminator/caller/optimization details private and generic methods limited to one unambiguous owning contract? Are intentionally generic structural/protocol primitives precisely named at their actual abstraction level without child-domain defaults?
 - Does every broad-to-narrow import point toward the consumer, with child-specific fixture composition kept in the child's nearest `conftest.py`?
 - Are immutable factories/bootstrap widest-safely-scoped while transactions, actors, credentials, clients, messages, and case state remain function-scoped?
 - Are known prepared entities, credentials, identifiers, and resource handles reused through typed contexts rather than rediscovered?
@@ -93,6 +95,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Does `create_many` build fresh values then execute one bulk write?
 - Do aggregate/domain bulk constructors delegate to bulk primitives instead of looping over single creates?
 - Are repository methods minimal, canonically named, strict about cardinality, filterless by default in a clean case, and owned by the state they mutate rather than a neighboring state used to rediscover its identifier?
+- Do specialized repository operations name the actual created/read/updated/deleted domain target or state, keep singular/plural cardinality truthful, avoid naming an owner argument or persisted implementation discriminator as the result, and use consistent vocabulary across aggregate and lower-level repositories?
 - Does coherent multi-store work live in a narrow aggregate repository, while queues use Publishers/Collectors?
 - Are independently meaningful existence states separate domain methods?
 - Do structured reusable results cross support boundaries as typed immutable values, while natural JSON/mapping/scalars remain natural?

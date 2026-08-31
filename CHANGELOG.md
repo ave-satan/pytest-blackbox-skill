@@ -6,6 +6,78 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-31
+
+### Changed
+
+- Focused variations/edge cases and intentionally extensible natural containers
+  now pass the complete observed compound value to an
+  implementation-independent structural matcher. Selected-field projections
+  and mutation/merging of ignored actual values are forbidden; whole-container
+  normalization remains available for incompatible equality semantics, while
+  closed primary values stay exact.
+- Domain naming now governs every public domain-facing test-support class,
+  fixture, and method, including repositories, Publishers, Collectors,
+  Services, Clients, runners, builders, and generators. Names express the role
+  plus the observable domain action/target/state/outcome and truthful
+  cardinality rather than storage, transport, persisted discriminators, caller
+  scenarios, or optimizations. Intentionally generic structural/protocol
+  primitives keep precise abstraction-level names without invented domain terms.
+- `SEM010` and `SEM011` add explicit semantic review for those two rules without
+  pretending that a deterministic linter can infer contract intent or domain
+  vocabulary.
+
+### Existing-project actions
+
+These source-preview actions are conditional and idempotent. The `upgrade`
+workflow ignores them until they are released unless the user explicitly opts
+into an unreleased checkout preview.
+
+#### PBB-MIG-0.6.0-01 — Scoped partial compound comparisons
+
+- **Condition:** a variation/edge case or intentionally extensible natural
+  container manually builds a selected-field projection from one existing
+  compound observation, deletes fields, or merges or overwrites ignored actual
+  values before comparison; or partial matching omits a stable application-owned
+  element from a closed primary contract.
+- **Action:** compare the complete observed value once through an appropriate
+  test-owned structural matcher that requires every declared element and allows
+  only unrelated elements. Use it only when the remainder is already protected
+  by the exact primary contract or the declared subset is the complete
+  application-owned contract of an intentionally extensible container. When the
+  container's equality implementation cannot delegate to the matcher, normalize
+  the complete natural container without selecting fields or losing contractual
+  multiplicity.
+- **Do not:** make the policy depend on one matcher class/name, weaken the
+  closed primary contract to partial matching, hide a missing declared element, or
+  manufacture an aggregate from independent observations.
+- **No-op when:** closed primary values are exact and every permitted partial
+  check passes one intact compound observation (or its complete natural
+  normalized representation) to a pure matcher while declaring the complete
+  application-owned subset for an extensible container.
+
+#### PBB-MIG-0.6.0-02 — Domain-named public test support
+
+- **Condition:** a public domain-facing repository, Publisher, Collector,
+  Service, Client, runner, builder, generator, fixture, or method is named after
+  storage, transport, a persisted discriminator, its calling test, or an
+  implementation optimization; misstates its returned/mutated entity or
+  cardinality; or uses a generic name while one component exposes several
+  contracts.
+- **Action:** rename the public API by its role plus the smallest domain action,
+  target, state, or outcome visible to tests; keep domain nouns consistent across
+  connected layers and move technical/performance mechanics behind private
+  methods. Preserve canonical generic operations when the owning component has
+  one unambiguous contract, and keep intentionally generic structural/protocol
+  primitives precisely named at their real abstraction level.
+- **Do not:** rename a method after an owner/context argument when it returns
+  another entity, expose backend/protocol details, mechanically repeat the class
+  noun, or mass-rename an already coherent mature vocabulary merely to copy an
+  example.
+- **No-op when:** every public domain-facing support name truthfully communicates
+  role, domain meaning, result/cardinality, and ambiguity without leaking
+  private implementation details.
+
 ## [0.5.0] - 2026-08-31
 
 ### Added
@@ -519,7 +591,8 @@ No project-file migration was required.
 - The shared black-box pytest policy, project onboarding, fallback discovery,
   and deterministic auditor.
 
-[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.2.0...v0.3.0

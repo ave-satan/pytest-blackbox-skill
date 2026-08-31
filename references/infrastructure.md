@@ -137,7 +137,7 @@ Represent message transport by role under `tests/messaging/`:
 - a domain `Collector` binds a test-owned queue/subscription before invocation and returns emitted public messages as artifacts.
 - when the supported production worker boundary accepts a delivery rather than consuming from the route itself, a private `DeliverySource` retrieves one unacknowledged delivery for that harness; it is neither a Collector nor a test fixture API.
 
-Name adapters by domain/channel plus role: `OrdersPublisher`, `BillingEventsCollector`, `orders_publisher`, `billing_events_collector`. Do not name them after the broker product or call them repositories.
+Name adapters by domain/channel plus role: `OrdersPublisher`, `BillingEventsCollector`, `orders_publisher`, `billing_events_collector`. Follow the shared public support naming rule in [fixtures.md](fixtures.md#public-support-api-naming): public methods describe the domain command/event or collected artifact, never the broker product, exchange/topic, routing, codec, or calling scenario. Do not call messaging adapters repositories.
 
 A Publisher exposes `publish(...)` for one message contract or focused methods such as `publish_created(...)` for several. It hides exchange/topic, routing key, headers, serialization, and protocol details. Payloads come from ordinary builders/providers.
 
@@ -197,7 +197,7 @@ In interception mode, use the production client's matching network tool: for `ai
 
 In mixed mode, assign the backend once per domain integration in fixture composition. The same Service must use that backend in every case; never parameterize or switch it to create test variations. Different Services used by one test may use different backends. Do not add a per-Service map to `pyproject.toml`: the project-wide policy records that mixing is intentional, while the typed fixture graph makes each assignment visible and reviewable.
 
-Service methods express external outcomes—`respond_with_profile`, `respond_not_found`, `respond_unavailable`, `raise_timeout`, or focused sequence methods. They hide exact URL, HTTP method, wire payload, headers, exceptions, response order, repetition, and interceptor registration. Tests never manipulate `aioresponses`, pass arbitrary URLs, or rebuild wire responses inline.
+Service methods follow the shared public support naming rule and express external domain outcomes—`respond_with_profile`, `respond_not_found`, `respond_unavailable`, `raise_timeout`, or focused sequence methods. They hide exact URL, HTTP method, wire payload, headers, exceptions, response order, repetition, interceptor registration, and the fact that a backend is a mock/interceptor. Tests never manipulate `aioresponses`, pass arbitrary URLs, or rebuild wire responses inline.
 
 When application code interprets a dependency response containing per-item successes and errors, expose a domain method for the relevant homogeneous and mixed response partitions. The test asserts the application's mapping, transaction/preservation behavior, and direct artifacts—not the SDK's reliability. Use the selected Service backend when it can express the wire response; otherwise use a real protocol-compatible path or report the missing supported seam rather than patching the production client. Preserve exact item cardinality and duplicate multiplicity in both the configured response and observed artifacts.
 

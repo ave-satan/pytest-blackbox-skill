@@ -3,6 +3,7 @@
 ## Contents
 
 - [Ownership and dependency direction](#ownership-and-dependency-direction)
+- [Public support API naming](#public-support-api-naming)
 - [Conftest and fixture visibility](#conftest-and-fixture-visibility)
 - [Configuration](#configuration)
 - [Application and API clients](#application-and-api-clients)
@@ -45,6 +46,24 @@ Narrower code may import broader code. Broader layers never import `tests/test_*
 Apply the same direction to fixture composition. A broad surface `conftest.py` may expose generic mechanisms owned by that surface, but it never imports a functional adapter from a narrower `test_*` component merely to construct a child-specific fixture. Move that fixture to the narrowest common owning `conftest.py`. A child may depend on a broader private application/transport/context fixture; the reverse dependency is forbidden.
 
 This diagram governs test-layer ownership; it does not authorize arbitrary imports from production. Root support may import supported public construction/lifecycle entrypoints such as `create_app(...)`, `create_admin_worker(...)`, a public messaging-bootstrap seam, or their application-specific equivalents, plus their public interfaces and configuration/composition types. Public production types are allowed only as required arguments/results of those boundaries or as annotations around actual values; they never construct expected values or encode/decode the test oracle. Repository modules may additionally import mapped `Table`/`__table__` metadata solely for SQLAlchemy Core state operations. No test support imports internal handlers, registries, runtime classes, application-state attributes, serializers/deserializers, message/envelope models, routing or task constants, production Publishers/Consumers, or internal topology helpers. The storage exception never permits ORM instances or behavior. Third-party protocol/client types remain allowed.
+
+## Public support API naming
+
+Treat every public test-support class, fixture, and method as part of the test author's API. A domain-facing component is named by its role and by the domain action, target, state, or outcome that a test supplies or observes. The name must truthfully describe the returned or mutated artifact and its cardinality. Do not name domain-facing support after a table, storage/backend, protocol mechanism, persisted discriminator, calling test, or an optimization used to prepare the state unless that term is itself the stable domain contract.
+
+Use the natural verb of each role:
+
+- repositories create, get, count, update, delete, or observe stored domain state;
+- Publishers publish domain commands/events and Collectors collect domain artifacts;
+- external Services prepare domain dependency outcomes;
+- Clients invoke domain operations, while workers/job runners process or run their public boundary;
+- builders build a specific in-memory contract value and generators produce a specific domain value.
+
+One domain concept keeps the same noun across connected layers while the role supplies the verb. Prefer names such as `create_gallery_photo`, `publish_photo_created`, `respond_not_found`, `unlock_photo`, or `run_cleanup` over names such as `create_catalog`, `publish_to_queue`, `add_mock_response`, `call_post_endpoint`, `invoke_handler`, or `create_with_last_asset`. An argument naming an owner/context does not make that owner the created result: a method returning a media record is not named `create_character` merely because it accepts a character.
+
+A concise generic method such as `create`, `publish`, `collect_one`, or `run_once` is valid when the owning domain component exposes one unambiguous contract and the role/result/cardinality remain clear. When one component exposes several operations, add the smallest domain qualifier that distinguishes them, for example `publish_delete` and `publish_reindex`. Do not repeat the class/fixture noun mechanically when its scope already makes the target unambiguous, such as `CharacterRepository.create_available()`. Keep transport/storage algorithms and performance-specific branches private behind this domain API.
+
+An intentionally generic structural/protocol primitive does not invent a domain noun. Name it precisely at its own abstraction level—such as `AnyStr`, `OrderedList`, or `WebSocketTransport`—and keep it generic only while it contains no child contract or domain defaults. This exception does not permit a domain-facing Repository, Publisher, Collector, Service, Client, runner, builder, generator, or fixture to leak backend mechanics through its public name.
 
 ## Conftest and fixture visibility
 
