@@ -44,7 +44,7 @@ Narrower code may import broader code. Broader layers never import `tests/test_*
 
 Apply the same direction to fixture composition. A broad surface `conftest.py` may expose generic mechanisms owned by that surface, but it never imports a functional adapter from a narrower `test_*` component merely to construct a child-specific fixture. Move that fixture to the narrowest common owning `conftest.py`. A child may depend on a broader private application/transport/context fixture; the reverse dependency is forbidden.
 
-This diagram governs test-layer ownership; it does not authorize arbitrary imports from production. Root support may import supported public construction/lifecycle entrypoints such as `create_app(...)`, `create_admin_worker(...)`, or their application-specific equivalents, plus their public interfaces and configuration/composition types. Public production types are allowed only as required arguments/results of those boundaries or as annotations around actual values; they never construct expected values or encode/decode the test oracle. Repository modules may additionally import mapped `Table`/`__table__` metadata solely for SQLAlchemy Core state operations. No test support imports internal handlers, registries, runtime classes, application-state attributes, serializers/deserializers, message/envelope models, routing or task constants, production Publishers/Consumers, or topology helpers to build test inputs or interpret outputs. The storage exception never permits ORM instances or behavior. Third-party protocol/client types remain allowed.
+This diagram governs test-layer ownership; it does not authorize arbitrary imports from production. Root support may import supported public construction/lifecycle entrypoints such as `create_app(...)`, `create_admin_worker(...)`, a public messaging-bootstrap seam, or their application-specific equivalents, plus their public interfaces and configuration/composition types. Public production types are allowed only as required arguments/results of those boundaries or as annotations around actual values; they never construct expected values or encode/decode the test oracle. Repository modules may additionally import mapped `Table`/`__table__` metadata solely for SQLAlchemy Core state operations. No test support imports internal handlers, registries, runtime classes, application-state attributes, serializers/deserializers, message/envelope models, routing or task constants, production Publishers/Consumers, or internal topology helpers. The storage exception never permits ORM instances or behavior. Third-party protocol/client types remain allowed.
 
 ## Conftest and fixture visibility
 
@@ -62,6 +62,8 @@ pytest_plugins = (
 ```
 
 Local `conftest.py` owns fixtures at the narrowest directory covering their consumers: functional-group fixtures at group level, area fixtures at area level, terminal-only fixtures beside that component. Every `conftest.py` is pytest-only; move helpers, constants, builders, classes, context managers, providers, and raw SDK topology/runtime construction to ordinary modules. A fixture may enter one focused context manager/factory and expose its typed projection, but `conftest.py` must not become the implementation owner for broker channels, exchanges, queues, worker runtimes, codecs, or cleanup algorithms.
+
+For a broker-backed suite, `tests/fixtures/messaging.py` exposes one private session-scoped autouse bootstrap fixture implemented by ordinary code under `tests/environment/`. It runs before broker-dependent application/worker/client fixtures and may return a private typed environment handle. Tests never request it. The fixture calls the real supported production composition/bootstrap boundary and lets every unexpected error fail fixture setup unchanged; the environment module owns broker administration and cleanup, not a duplicate topology model or inspector.
 
 Fixture names form a public test API:
 
@@ -132,7 +134,7 @@ async def test_applies_feature_setting(api_client, settings, expected_status):
     assert actual_response.status_code == expected_status
 ```
 
-The public `settings` argument makes the per-test behavior explicit. The private application fixture depends on that same `settings` fixture and passes it to the supported application factory/wiring before lifespan begins. Never mutate `_base_settings` or rely on a test changing ambient global configuration.
+The public `settings` argument makes the per-test composition selection explicit; the test does not inspect it to construct expected truth because `expected_status` is independently parameterized. The private application fixture depends on that same `settings` fixture and passes it to the supported application factory/wiring before lifespan begins. Never read production defaults/parsing back into an expected value, mutate `_base_settings`, or rely on a test changing ambient global configuration.
 
 Generated values are ordinary arrange-time function calls, never fixtures. A fixture that only returns `generators.login()`, a UUID, timestamp, payload, or other in-memory value adds no lifecycle/capability and hides variation; call the generator or payload builder in arrange instead.
 
@@ -212,7 +214,7 @@ async def authorized_api_client(
 
 Use distinct unauthorized and authorized client instances over the same application and transaction. Prepare identity/session/token/cookie state through private fixtures and repositories without calling registration/login endpoints. Apply credentials through the application's real authorization mechanism; do not mock authorization or mutate `api_client` into the authorized client.
 
-The `database_connection` argument above represents a production-owned composition hook; use the application's supported equivalent. It accepts or binds the outer `Connection`/`AsyncConnection` matching the project's concurrency model, while production code internally creates and uses its normal ORM sessions on that connection. Test functions and all test support never import, request, construct, configure, or operate SQLAlchemy `Session`/`AsyncSession` objects or session factories. If the application lacks this boundary, report the blocker and request separate authorization to add/refactor a general production seam; never define a test-only ORM provider. Repositories and other test-owned database preparation use the connection directly with SQLAlchemy Core statement APIs.
+The `database_connection` argument above represents a production-owned composition hook; use the application's supported equivalent. In a SQLAlchemy project it accepts or binds the outer `Connection`/`AsyncConnection` matching the project's concurrency model, while production code internally creates and uses its normal ORM sessions on that connection. Test functions and test support then never import, request, construct, configure, or operate SQLAlchemy `Session`/`AsyncSession` objects or session factories; repositories use Core statement APIs. Another database stack uses its own supported low-level rollback binding and query API. If the application lacks any such boundary, report the blocker and request separate authorization to add/refactor a general production seam; never define a test-only ORM/provider solely for the suite.
 
 For an explicitly enabled concurrency contract, do not bind participants to that ordinary outer connection. A private concurrency environment fixture gives each production-composed participant its own normal committing connection and supplies separately named typed concurrency repositories for committed arrange/read/cleanup operations. Tests receive only those purposeful repositories and public clients, never engines, connection factories, transactions, or ORM sessions. All ordinary fixtures keep the shared rollback binding.
 
@@ -226,7 +228,7 @@ Every in-process async transport/runner adapter waits on both sides of its compl
 
 Give every non-HTTP runtime one production-owned public composition boundary analogous to `create_app(...)`. The boundary builds the real handler registry, production sessions, broker adapters, and internal runtime from explicit public configuration and injected case resources. Test support may invoke the returned public process-one/handle/run-once capability, but it never assembles the registry or handler graph itself.
 
-Pass the outer test `Connection`/`AsyncConnection` or another supported production database binding into this boundary. Production code creates and uses its normal ORM sessions internally. Never read `_application.state.*`, retrieve or pass a production session factory, instantiate an internal handler/runtime directly, or reproduce the task-type-to-handler mapping in tests.
+Pass the outer test rollback binding into this boundary—for SQLAlchemy, the `Connection`/`AsyncConnection`. Production code may create and use its normal ORM sessions internally. Never read `_application.state.*`, retrieve or pass a production session factory, instantiate an internal handler/runtime directly, or reproduce the task-type-to-handler mapping in tests.
 
 For an incoming-message contract, the test-owned Publisher sends one independently encoded message through the real broker route. Prefer a composed production run-once/process-one boundary that consumes from that route itself. If the supported boundary accepts an unacknowledged delivery, a private DeliverySource retrieves and hands it over. The test sees only a domain client method such as `process_delete(...)`, never the raw delivery, channel, queue, runtime, handler, or registry.
 
@@ -239,7 +241,7 @@ Do not repeat identical behavior-independent preparation in every test. Hoist on
 Use the widest safe scope:
 
 - make the prepared object itself session-scoped only when it cannot retain any case state;
-- when it retains cookies, credentials, actors, mutable headers, transaction handles, case configuration, queue bindings, jobs, collected messages, or other case state, keep only its expensive immutable factory/bootstrap session-scoped;
+- when it retains cookies, credentials, actors, mutable headers, transaction handles, case configuration, test-owned observation bindings, jobs, collected messages, or other case state, keep only its expensive immutable factory/bootstrap session-scoped;
 - expose a thin function-scoped public fixture that binds the shared bootstrap to the current `_database_transaction`, derived `settings`, isolated namespace, or per-case state and resets any mutable surface in teardown;
 - create a fully isolated function-scoped actor/runtime only when the case mutates that actor/runtime, tests its creation/lifecycle, or requires behavior-affecting configuration incompatible with the shared instance.
 
@@ -289,9 +291,9 @@ Pytest caches `_authorized_context` once for the test, so a test requesting the 
 
 Fixture contexts and helper results use named typed fields. Prefer frozen dataclasses or focused DTOs; do not return `dict[str, object]` or positional tuples for internal multi-value results. This context models cohesive preparation and is not a synthetic assertion aggregate. Dictionaries remain correct for natural mapping contracts such as JSON payloads, headers, settings overrides, and raw external wire bodies.
 
-## One event loop
+## One async runtime
 
-For an asyncio project, use exactly one pytest-managed event loop from session setup through session teardown:
+For an asyncio project using pytest-asyncio, use exactly one pytest-managed event loop from session setup through session teardown:
 
 ```toml
 [tool.pytest.ini_options]
@@ -302,9 +304,9 @@ asyncio_default_test_loop_scope = "session"
 
 Every explicitly configured async fixture uses `loop_scope="session"`, regardless of its cache scope. Create, use, and close engines, connections, clients, tasks, futures, locks, queues, transports, lifespan, and environment resources on that loop. Production-owned ORM sessions remain inside application code on this same loop.
 
-Never call `asyncio.run`, `asyncio.Runner`, `asyncio.new_event_loop`, `asyncio.set_event_loop`, or `run_until_complete`; never define another event-loop fixture. Convert synchronous fixtures that bridge to async work into async fixtures and `await` setup/teardown.
+Under that pytest-asyncio model, never call `asyncio.run`, `asyncio.Runner`, `asyncio.new_event_loop`, `asyncio.set_event_loop`, or `run_until_complete`; never define another event-loop fixture. Convert synchronous fixtures that bridge to async work into async fixtures and `await` setup/teardown.
 
-Do not force an event loop or async fixtures onto a fully synchronous project. Match the application's concurrency model end to end.
+For AnyIO, Trio, or another supported async test backend, use one coherently owned suite runtime/backend and its native fixture lifecycle; do not add or mix asyncio loops to imitate the example. Do not force an event loop or async fixtures onto a fully synchronous project. Match the application's concurrency model end to end.
 
 ## Scope and cleanup
 

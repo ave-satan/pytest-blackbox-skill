@@ -786,6 +786,16 @@ class Audit:
                 f"active standard layout forbids vague category {path.name!r}; "
                 "name the public contract behavior instead",
             )
+        if tests and path.name == "test_topology.py":
+            self.add(
+                "ERROR",
+                "STR007",
+                path,
+                1,
+                "broker topology is a private session-bootstrap invariant, not a "
+                "collected test module; remove this surface and invoke the real "
+                "production bootstrap from fixture-owned environment setup",
+            )
 
         self.audit_imports(path, tree)
         self.audit_calls(path, tree, aliases)

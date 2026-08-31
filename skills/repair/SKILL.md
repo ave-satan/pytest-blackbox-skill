@@ -9,4 +9,4 @@ Read the complete [shared policy](../../core/POLICY.md) before acting. If `[tool
 
 Reproduce the smallest relevant failure and classify it before editing: application defect, contract mistake, test-support/environment failure, leaked state, or nondeterminism. Repair only test and test-support behavior within the user's scope. If the evidence points to an application defect or a missing production composition seam, report it and obtain separate authorization before changing production code.
 
-Run the deterministic auditor, the focused failing selection, and broader checks proportional to the change. Do not silently turn repair into a legacy-suite refactor.
+Run the focused failing selection, deterministic lint, semantic audit/reconciliation, and broader checks proportional to the change. Do not silently turn repair into a legacy-suite refactor.

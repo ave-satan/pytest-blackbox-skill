@@ -41,9 +41,9 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
             code="SEM001",
             message=(
                 "reconcile a transient contract-evidence matrix: complete operation "
-                "census, applicable policy depth, primary node/categories, and every "
-                "application-owned observable outcome class within the active policy "
-                "boundary"
+                "census from final framework registrations/actions, applicable policy "
+                "depth, primary node/categories, and every application-owned observable "
+                "outcome class within the active policy boundary"
             ),
         )
     ]
@@ -54,10 +54,14 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
             severity="MANUAL",
             code="SEM006",
             message=(
-                "prove scenario completeness, not only operation presence: inspect "
-                "authoritative requirements and application-owned source branches, "
-                "map every distinct public outcome, state partition, boundary, "
-                "isolation dimension, and direct artifact to a collected node; "
+                "prove scenario completeness, not only operation presence: derive "
+                "expected truth from authoritative requirements and inspect "
+                "application-owned source branches only for candidate gaps; map every "
+                "confirmed public outcome, state partition, compound ownership/"
+                "isolation dimension, boundary, terminal/no-op/stale handler outcome, "
+                "mixed batch partition, and direct artifact to a collected node; "
+                "report undocumented source-only candidates instead of using current "
+                "implementation as the oracle; "
                 "policy decisions may scope only non-contract surfaces; exclude "
                 "concurrent execution when "
                 "test_concurrency is false"
@@ -105,10 +109,39 @@ def semantic_findings(root: Path, tests_dir: Path, policy: Policy) -> list[Findi
                 severity="MANUAL",
                 code="SEM004",
                 message=(
-                    "verify selected worker runtime has test_topology.py coverage of "
-                    "the actual declaration/consumer-registration seam, success paths "
-                    "have a positive settlement artifact, and handler outcome matrices "
-                    "cover preservation/rejection branches"
+                    "reconcile every registered handler contract independently from "
+                    "shared worker runtime: cover distinct observable no-op/stale/preservation/"
+                    "rejection outcomes without manufacturing corrupt states"
+                ),
+            )
+        )
+        findings.append(
+            Finding(
+                path=str(workers.relative_to(root)),
+                line=1,
+                severity="MANUAL",
+                code="SEM008",
+                message=(
+                    "only when shared worker runtime behavior belongs to the selected "
+                    "coverage boundary, reconcile dispatch/envelope/unknown-message "
+                    "behavior; when settlement is selected, require a positive "
+                    "acknowledgement/non-redelivery artifact"
+                ),
+            )
+        )
+        findings.append(
+            Finding(
+                path=str(workers.relative_to(root)),
+                line=1,
+                severity="MANUAL",
+                code="SEM009",
+                message=(
+                    "verify broker topology is absent from the contract-test surface: "
+                    "one private session/autouse fixture invokes the real production "
+                    "bootstrap in an isolated namespace, propagates setup errors, and "
+                    "leaves no competing consumer; teardown deletes isolated resources "
+                    "without a topology spec, broker-state comparison, test_topology.py, "
+                    "or inverse-topology teardown"
                 ),
             )
         )

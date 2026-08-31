@@ -1,6 +1,6 @@
 # Terms of Use
 
-Effective date: August 24, 2026
+Effective date: August 31, 2026
 
 These terms apply to the Pytest Blackbox skills-only plugin maintained by
 ave-satan.
@@ -14,8 +14,9 @@ software.
 
 ## Intended use
 
-Pytest Blackbox provides workflows and guidance for designing, writing,
-repairing, reviewing, and auditing Python pytest contract suites. Its output is
+Pytest Blackbox provides workflows and guidance for developing Python
+application behavior test-first and for designing, writing, repairing,
+reviewing, and auditing Python pytest contract suites. Its output is
 not a guarantee of software correctness, coverage completeness, security, or
 fitness for a particular purpose.
 

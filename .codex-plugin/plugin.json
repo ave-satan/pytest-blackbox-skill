@@ -1,7 +1,7 @@
 {
   "name": "pytest-blackbox",
-  "version": "0.4.0",
-  "description": "Discover, lint, design, write, repair, review, upgrade, and audit Python black-box pytest contract suites.",
+  "version": "0.5.0",
+  "description": "Discover, lint, develop test-first, write, repair, review, upgrade, and audit Python black-box pytest contract suites.",
   "author": {
     "name": "ave-satan",
     "url": "https://github.com/ave-satan"
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Pytest Blackbox",
     "shortDescription": "Black-box pytest contract testing workflows",
-    "longDescription": "Discover project policy, lint deterministic rules, write and repair contract tests, apply release migrations, review focused changes, and audit complete Python pytest suites through public application boundaries.",
+    "longDescription": "Discover project policy, develop application behavior through contract-first red-green tests, lint deterministic rules, write and repair contract tests, apply release migrations, review focused changes, and audit complete Python pytest suites through public application boundaries.",
     "developerName": "ave-satan",
     "category": "Engineering",
     "websiteURL": "https://github.com/ave-satan/pytest-blackbox-skill",
@@ -33,6 +33,7 @@
     ],
     "defaultPrompt": [
       "Discover the black-box test policy for this Python service.",
+      "Implement this application behavior through a contract-first test-first workflow.",
       "Add contract tests for this new API endpoint.",
       "Audit this pytest suite for missing contracts and policy drift."
     ],

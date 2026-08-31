@@ -11,9 +11,16 @@ interval from the user's stated previous version or reliable host metadata. If
 the previous version is unknown, evaluate the changelog's idempotent conditions
 against the project and ask only when that uncertainty changes an action.
 
+Use only actions contained in released version sections inside that interval.
+Ignore `[Unreleased]` completely unless the user explicitly asks to preview or
+apply migrations from a source checkout; make that preview status visible and
+never infer it merely because the checkout contains newer files.
+
 Apply only matching entries under **Existing-project actions**:
 
 - preserve each action's condition, no-op, and **Do not** boundaries;
+- when a later action explicitly **Supersedes** an earlier one, apply only the
+  final form and skip transient artifacts required solely by the older action;
 - show exact configuration and dependency changes before mutation;
 - never infer an O capability such as managed dependencies;
 - treat an already-satisfied action as complete without rewriting it;

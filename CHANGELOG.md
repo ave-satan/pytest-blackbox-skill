@@ -6,7 +6,152 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
-No changes yet.
+## [0.5.0] - 2026-08-31
+
+### Added
+
+- `develop` workflow for contract-first, test-first application delivery:
+  complete scoped scenario matrix, meaningful red evidence, cohesive production
+  implementation, green verification, and refactoring only while green.
+- Staged red evidence for newly registered operations: a coarse missing-route,
+  discriminator, or symbol failure is followed by assertion-level red after
+  adding only the approved real composition skeleton.
+- Explicit scenario dimensions for compound ownership/isolation, acknowledged
+  no-op and stale handler outcomes, framework-generated functional actions, and
+  mixed batch/dependency result partitions.
+
+### Changed
+
+- Operation census now inspects final framework registrations and treats each
+  functional confirmation/rendering GET and mutating POST as its own operation.
+- Broker topology and consumer/handler registration are no longer test
+  surfaces. One private session/autouse fixture runs the real production
+  bootstrap in an isolated namespace; setup failure is the check, with no
+  expected-topology model, broker-state comparison, or topology downgrade.
+- A single call against prearranged final state is explicitly not idempotency
+  evidence; idempotency reuses the complete primary oracle and proves the full
+  stored terminal result plus exact non-duplication artifacts.
+- Collection assertions preserve cardinality and duplicate multiplicity;
+  rendered HTML/SSR cases cover complete relevant application-owned view state
+  without snapshotting framework markup.
+- Registered handler matrices include distinct observable missing, no-op,
+  stale/mismatched, prerequisite, lock-ownership, preservation, and time-boundary
+  outcomes without mirroring unobservable internal branches.
+- External Services may express homogeneous and mixed per-item dependency
+  responses so tests protect application-owned partial-error mapping without
+  patching production clients or retesting SDK reliability.
+- Async dispatch tests classify their supported completion boundary and report
+  genuinely unobservable fire-and-forget work as a blocker; validation keeps
+  its compact matrix while one focused case may prove rejection side effects
+  are absent.
+- Category ownership follows contract meaning: domain-state rejections remain
+  business logic, while transport, dependency, and operational failures remain
+  errors.
+- `upgrade` ignores `[Unreleased]` migrations unless the user explicitly opts
+  into a source-checkout preview.
+- `SEM001`, `SEM004`, `SEM006`, conditional `SEM008`, and `SEM009` now separate
+  final HTTP/framework registrations, mandatory handler outcomes, optional
+  worker-runtime behavior, messaging bootstrap ownership, ownership/isolation,
+  and mixed batch partitions.
+- SQLAlchemy, Alembic, and pytest-asyncio mechanics are explicitly conditional
+  on those technologies while their underlying repository, lifecycle, and
+  single-runtime invariants remain stack-neutral.
+- Source branches now reveal candidate scenario gaps but never define expected
+  truth; undocumented observable behavior becomes a finding or product question.
+- Test-only future contracts report coarse missing-registration red honestly
+  without adding a production skeleton or overstating scenario evidence.
+- `STR007` reports collected `test_topology.py` modules and directs migration
+  to the private session bootstrap.
+- Terms now explicitly include test-first application development in the
+  plugin's intended use.
+
+### Existing-project actions
+
+These actions are conditional and idempotent. They prepare existing projects
+for the next minor release; the configuration schema remains at
+`config_version = 1`.
+
+#### PBB-MIG-0.5.0-01 — Registered actions and ownership isolation
+
+- **Condition:** a selected framework action expands into multiple functional
+  method/path registrations without separate test owners, or a resource keyed
+  by principal/tenant plus resource has only same-principal positive coverage.
+- **Action:** inventory the final registration table, add the missing operation
+  component, and add another-principal isolation cases for every independently
+  observable read/write contract.
+- **Do not:** test documentation-only routes, infer hidden endpoints from helper
+  names, or combine distinct operations into one workflow test.
+- **No-op when:** every selected functional registration and compound ownership
+  dimension already maps to concrete collected evidence.
+
+#### PBB-MIG-0.5.0-02 — Session-owned production topology bootstrap
+
+- **Condition:** a broker-backed suite has `test_topology.py`, a topology test or
+  expected-topology model under another name, case/local fixtures that declare
+  production routes, or no private session bootstrap invoking the real
+  production declaration/composition seam.
+- **Action:** create only an isolated enclosing broker namespace, move the real
+  production bootstrap call into one private session/autouse fixture backed by
+  `tests/environment/`, make every broker-dependent fixture depend on it, and
+  remove collected topology cases, state comparison, and duplicate declarations.
+- **Do not:** inspect broker state as an equality oracle, catch bootstrap errors,
+  leave a bootstrap consumer competing with test workers, invoke inverse
+  production declarations at teardown, or replace isolated resource deletion
+  with a topology downgrade test.
+- **No-op when:** production topology bootstrap completes once during session
+  setup, every broker-dependent fixture relies on it, no topology test/spec
+  exists, and teardown only deletes the isolated namespace/resources.
+- **Supersedes:** the topology branch of `PBB-MIG-0.4.0-06`. When an upgrade
+  interval includes both actions, apply this final bootstrap form directly;
+  retain only the independent `SEM006` reconciliation from the older action.
+
+#### PBB-MIG-0.5.0-03 — Exact repeated and collection artifacts
+
+- **Condition:** an idempotency test invokes only prearranged final state,
+  weakens the first/terminal artifact to count/type fragments, or a collection
+  assertion converts to a set and loses duplicate multiplicity.
+- **Action:** perform the promised first and second invocations with the same
+  contractual identity, compare the complete first and terminal outcomes, and
+  prove exact artifact content/cardinality with ordered equality or one-to-one
+  unordered matching.
+- **Do not:** infer idempotency, add a third call, or manufacture ordering when
+  only multiplicity is contractual.
+- **No-op when:** repetition and every collection already preserve the complete
+  contract and exact multiplicity.
+
+#### PBB-MIG-0.5.0-04 — Handler, batch, and rendered outcome completeness
+
+- **Condition:** a registered handler or continuing batch operation omits a
+  distinct observable no-op/stale/mismatch/prerequisite/mixed outcome from a
+  contractually reachable or explicitly tolerated state, an
+  application-owned dependency partial-error mapping is untested, or an SSR
+  primary case omits relevant echoed/action/control/result fields.
+- **Action:** confirm the authoritative meaning of each candidate outcome, add
+  only the missing confirmed cases, configure dependency partial responses
+  through the selected domain Service or real protocol path, compare exact
+  partition multiplicity, and parse the complete relevant application-owned
+  rendered state. Record or ask about an undocumented source-only candidate.
+- **Do not:** mirror private branches that collapse to an existing outcome,
+  freeze current source behavior as expected truth, patch a production client,
+  snapshot framework markup, or test SDK reliability.
+- **No-op when:** every distinct direct response/settlement/state/message/object
+  artifact and mixed partition is already protected.
+
+#### PBB-MIG-0.5.0-05 — Dispatch completion and rejection safety
+
+- **Condition:** an async-dispatch API test races an immediate collector read,
+  sleeps/polls for a message, inspects a private task registry, or a mutating
+  validation boundary can return the right rejection while still creating a
+  direct artifact with no focused case capable of detecting it.
+- **Action:** bind observation before invocation and synchronize through awaited
+  broker acceptance, a public queued-task artifact, or another supported
+  deterministic completion boundary; add one focused rejection-safety artifact
+  case where the contract requires side-effect-free rejection.
+- **Do not:** run the downstream worker in the API test, add elapsed waits,
+  duplicate artifact checks across every invalid parameter row, or expose a
+  test-only completion hook.
+- **No-op when:** dispatch observation has a supported deterministic boundary
+  and rejected input cannot silently create the protected direct artifact.
 
 ## [0.4.0] - 2026-08-30
 
@@ -374,7 +519,8 @@ No project-file migration was required.
 - The shared black-box pytest policy, project onboarding, fallback discovery,
   and deterministic auditor.
 
-[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.1.2...v0.2.0

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pytest Blackbox: Develop"
+  short_description: "Develop Python behavior test-first"
+  default_prompt: "Use $pytest-blackbox:develop to implement this Python application behavior through a contract-first red-green workflow."
+policy:
+  allow_implicit_invocation: true

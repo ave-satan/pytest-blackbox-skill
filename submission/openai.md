@@ -10,10 +10,10 @@ submission form. It does not submit or publish the plugin.
 - **Developer name:** ave-satan
 - **Category:** Engineering
 - **Short description:** Black-box pytest contract testing workflows
-- **Long description:** Discover project policy, lint deterministic rules,
-  write and repair contract tests, apply release migrations, review focused
-  changes, and audit complete Python pytest suites through public application
-  boundaries.
+- **Long description:** Discover project policy, develop application behavior
+  through contract-first red-green tests, lint deterministic rules, write and
+  repair contract tests, apply release migrations, review focused changes, and
+  audit complete Python pytest suites through public application boundaries.
 - **Website:** https://github.com/ave-satan/pytest-blackbox-skill
 - **Support:** https://github.com/ave-satan/pytest-blackbox-skill/issues
 - **Privacy:** https://github.com/ave-satan/pytest-blackbox-skill/blob/main/PRIVACY.md
@@ -29,8 +29,9 @@ the listing, manifest, and legal pages before submission.
 ## Starter prompts
 
 1. Discover the black-box test policy for this Python service.
-2. Add contract tests for this new API endpoint.
-3. Audit this pytest suite for missing contracts and policy drift.
+2. Implement this application behavior through a contract-first test-first workflow.
+3. Add contract tests for this new API endpoint.
+4. Audit this pytest suite for missing contracts and policy drift.
 
 ## Positive test cases
 
@@ -47,7 +48,22 @@ the listing, manifest, and legal pages before submission.
   least one application package, and either an existing `tests/` directory or
   enough source structure to infer a proposed layout. No account or credentials.
 
-### 2. Write endpoint contract tests
+### 2. Develop endpoint behavior test-first
+
+- **User prompt:** Implement an authenticated `POST /v1/orders` endpoint with
+  authorization, validation, business errors, and a persisted order.
+- **Expected behavior:** Invoke `develop`, build the complete scoped contract
+  matrix, write and run all black-box cases before production behavior, classify
+  a meaningful red result, implement the cohesive endpoint, then obtain focused
+  and broader green evidence without test-only entrypoints or production-derived
+  expectations.
+- **Expected result shape:** Contract/scenario matrix summary, red evidence,
+  production and test changes, green evidence, exact exclusions, and blockers.
+- **Fixture data:** A throwaway Python HTTP service with a configured test
+  database and `[tool.pytest-blackbox]` in `pyproject.toml`. The endpoint does
+  not yet exist. No external account.
+
+### 3. Write endpoint contract tests
 
 - **User prompt:** Add black-box contract tests for the new authenticated
   `POST /v1/orders` endpoint, including authorization, validation, business
@@ -63,7 +79,7 @@ the listing, manifest, and legal pages before submission.
   `POST /v1/orders` endpoint, a configured test database, and
   `[tool.pytest-blackbox]` in `pyproject.toml`. No external account.
 
-### 3. Repair a failing contract test
+### 4. Repair a failing contract test
 
 - **User prompt:** These API contract tests started failing after a response
   schema change. Diagnose the cause and repair the tests without mocking app
@@ -77,7 +93,7 @@ the listing, manifest, and legal pages before submission.
   contract tests whose current public response differs from the old expected
   shape. No credentials.
 
-### 4. Review a focused test diff
+### 5. Review a focused test diff
 
 - **User prompt:** Review the staged pytest changes for contract gaps,
   implementation coupling, fixture ownership, and nondeterminism. Do not edit
@@ -90,13 +106,14 @@ the listing, manifest, and legal pages before submission.
 - **Fixture data:** A Git checkout with a staged Python test diff. No account,
   network access, or private reviewer context.
 
-### 5. Audit a complete suite
+### 6. Audit a complete suite
 
 - **User prompt:** Audit this complete pytest suite against pytest-blackbox.
   Reconcile every public API endpoint, registered job, scheduler, worker, and
   message handler with its contract coverage. Do not change files.
-- **Expected behavior:** Invoke `audit`, build an operation census, run the
-  deterministic auditor when available, then independently reconcile both
+- **Expected behavior:** Invoke `audit`, build an operation census, run
+  deterministic lint when available, then perform the semantic audit and
+  independently reconcile both
   operation presence and every distinct application-owned scenario/outcome
   from requirements and source with concrete collected test evidence. Keep the
   audit read-only and do not treat a green primary contract as completeness.
@@ -151,12 +168,13 @@ open-source plugin, GitHub-based support, and these legal terms are appropriate.
 Confirm the final selection against the verified publisher's legal and support
 readiness immediately before submission.
 
-## Initial release notes
+## Proposed release notes
 
-Initial skills-only submission of Pytest Blackbox. The plugin provides seven
-workflows for discovering project policy, linting deterministic rules, writing
-and repairing Python contract tests, applying release migrations, reviewing
-focused changes, and auditing complete pytest suites. It has no hosted backend,
+Pytest Blackbox provides eight
+workflows for discovering project policy, developing application behavior
+test-first, linting deterministic rules, writing and repairing Python contract
+tests, applying release migrations, reviewing focused changes, and auditing
+complete pytest suites. It has no hosted backend,
 authentication, test account, telemetry, or reviewer credentials. The final
 bundle has been tested through a local Codex marketplace; Claude Code runtime
 validation remains pending until the CLI is available.

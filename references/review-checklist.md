@@ -13,26 +13,33 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 
 ## Contract boundary and coverage
 
+- For an application-development task, was the complete scoped contract/scenario matrix written before production behavior changed, and was a meaningful red run classified before implementation?
+- Did red fail on the missing/wrong contract rather than fixture, environment, syntax/import, or oracle defects; if tests unexpectedly passed, was weak/already-existing behavior investigated before production edits?
+- If collection failure, `404`, or another registration-only outcome masked the whole new matrix, was only the approved real registration skeleton added and a second assertion-level red obtained before behavior implementation?
+- Was the whole scoped matrix implemented cohesively, followed by focused green, deterministic lint, semantic audit/reconciliation, and broader checks; after refactoring, were affected checks rerun, and was pure refactoring handled with green-before/after instead of an artificial red?
+
 - Does each test enter through a supported application/job/worker/message boundary and avoid implementation handlers/state/registries/codecs/constants?
 - Are input/action and expected truth independently expressed rather than built through production DTO/schema/default/validation/serialization?
+- For configuration-controlled behavior, are explicit test-owned overrides and expected outcomes paired independently instead of reading expected truth from production `Settings` or defaults?
 - Is every public product HTTP/JSON-RPC/WebSocket operation and registered job/scheduler/handler independently covered, while documentation-only endpoints and generated API docs stay outside the contract suite?
+- Was the final framework registration/action table inspected so synthesized confirmation/rendering GETs, mutating POSTs, mounted actions, and other method-specific functional routes were inventoried separately?
 - Was a transient contract-evidence matrix reconciled against collected nodes, including every operation matched by a `focused` rule and every application-owned observable outcome class?
-- Was scenario completeness checked semantically from authoritative requirements plus source behavior, including state partitions, isolation dimensions, boundaries, terminal outcomes, and direct artifacts rather than only component/file presence?
+- Was scenario completeness checked semantically from authoritative requirements plus source behavior, including reachable/tolerated state partitions, compound ownership/isolation dimensions, boundaries, terminal/no-op/stale outcomes, mixed batch partitions, and direct artifacts—without manufacturing corrupt states or relying only on component/file presence?
 - Is ordinary HTTP identity method + path, JSON-RPC identity HTTP method + RPC method, and WebSocket identity route lifecycle or route + contractual subprotocol/discriminator?
 - Do WebSocket tests keep handshake denials as values, prove required non-terminal continuation and close outcomes, and propagate unexpected application-task failures without timeout waits?
 - Does the route-level WebSocket component use a clear connection/lifecycle category—preferably `test_connection.py` in the standard layout—while independently invokable message commands choose categories by their own behavior?
 - Are WebSocket outcome variants immutable, mutually exclusive, and limited to current contractual fields, using a zero-field accepted marker when success carries no data?
-- Does an async-dispatching API test stop at response + queued artifact, leaving execution to a separate worker contract?
+- Does an async-dispatching API test stop at response + queued artifact, leaving execution to a separate worker contract, and use a supported deterministic completion boundary instead of racing later fire-and-forget work?
 - Are shared worker/runtime contracts tested once and kept distinct from handler contracts?
 - Are non-contract surfaces classified by the generalized registry before scope expands?
-- Is there one primary full contract plus every applicable category, with `test_business_logic.py` reserved for actual business behavior and any other cohesive aspect given a concise behavior-specific name?
+- Is there one primary full contract plus every applicable category, with domain-state rejection owned by `test_business_logic.py`, transport/dependency/operational failures owned by `test_errors.py`, and any other cohesive aspect given a concise behavior-specific name?
 - Does each primary contract exact-compare the complete stable public response/value, including unchanged fields returned by partial updates?
 - Does every repeated public invocation cite an explicit authoritative repetition contract rather than infer idempotency/retry from implementation or naming?
-- Does each idempotency case use the same contractual identity, exactly two calls unless another phase is promised, a complete first result, the promised second terminal result, and positive exact evidence that direct artifacts were not duplicated?
+- Does each idempotency case use the same contractual identity, exactly two calls unless another phase is promised, a complete first result, the promised second terminal result, and positive exact evidence that direct artifacts were not duplicated, rather than one call against prearranged final state?
 - Is a cohesive idempotency matrix named `test_idempotency.py` rather than hidden in generic business logic?
 - Does every registered scheduler test observe the actual callback/trigger registration without a live-clock race?
 - If worker settlement is selected, does success have a positive acknowledgement/non-redelivery artifact rather than only an empty rejected queue?
-- If worker runtime/registration is selected, does `test_topology.py` inspect the actual production declaration/registration seam, application-owned broker choices, QoS, and handler mapping without a live wait or parallel topology oracle?
+- Is broker topology absent from the operation matrix and collected test surface, including files/components named `test_topology` or equivalent?
 - Are health checks opt-in and limited to application-owned operational mapping?
 
 ## Cases and assertions
@@ -43,6 +50,8 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Do parameter rows contain values/expected values or uniform arrange-time factories with explicit readable IDs?
 - Are fresh time/UUID/generated values created during arrange rather than collection?
 - Is the general case complete, with edge cases asserting only the changed fact?
+- Do collection assertions preserve exact cardinality and duplicate multiplicity instead of hiding duplicates with a set conversion?
+- For rendered HTML/SSR, are all relevant application-owned view fields, echoed identifiers, action/CSRF state, and result/error partitions covered without snapshotting dependency-generated markup?
 - Are separately bound results named `actual`/`actual_*` and expectations `expected`/`expected_*`?
 - Are compound values compared whole and independent observations kept separate without a manufactured aggregate?
 - Does every assertion remain an explicit `assert`, with builders/matchers rather than assertion helpers?
@@ -52,13 +61,14 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 
 - Does validation vary one field at a time, except contractually related fields?
 - Do non-enum fields cover an ordinary valid value when appropriate, valid boundaries, nearest invalid values, and representative invalid shapes, while enums/registered discriminators cover every publicly allowed member plus an invalid member without fabricated successful rows from a broader schema representation?
-- Does validation assert only acceptance/rejection and validation error rather than repeat downstream business artifacts?
+- Does validation assert only acceptance/rejection and validation error rather than repeat downstream business artifacts, with at most one focused rejection-safety case when rejected input must not produce a direct effect?
 - If a performance double is used, is it injected through a supported seam, unrelated to the asserted artifact, backed by real-path coverage, semantically removable except for cost, typed/reset, and free of internal call assertions?
 
 ## Fixtures and composition
 
 - Does every `conftest.py` contain only fixtures/hooks/plugin registration, with root fixtures registered from focused modules?
 - Do local conftests delegate raw SDK topology/runtime/cleanup algorithms to ordinary modules?
+- Does one private session/autouse messaging fixture invoke the real production topology bootstrap before any broker-dependent fixture, propagate bootstrap errors unchanged, avoid a duplicate expected topology model or broker-state comparison, and leave no extra consumer competing with test workers?
 - Are fixture-only dependencies private and absent from test signatures?
 - Are cleanup and ordering explicit, with no meaningless `del` or pass-through fixture aliases?
 - Does shared support avoid imports and hardcoded route/discriminator/topology/expected literals from narrower or sibling test groups and unsupported production internals?
@@ -71,12 +81,12 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Do public capability fixtures compose only stable machinery/baseline identity, while revoked/expired/deleted/pending and other case states are visibly arranged through repositories?
 - Are fixture names as specific as their returned capability, and are protocol layers clearly distinguished as Transport, Connection, and functional Client where all three exist?
 - Are generated UUID/time/payload/domain values ordinary arrange-time calls rather than value-only fixtures?
-- Does an asyncio suite use exactly one pytest-managed session loop while a synchronous project remains synchronous?
+- Does a pytest-asyncio suite use exactly one pytest-managed session loop; does another async backend own one coherent native runtime without mixed asyncio loops; and does a synchronous project remain synchronous?
 - Are HTTP requests in-process and authorization clients prepared without login/setup endpoints?
 
 ## Repositories and generated data
 
-- Do tests use repositories for addressable stored state and never raw DB/cache/object/search clients or SQLAlchemy sessions?
+- Do tests use repositories for addressable stored state and never raw DB/cache/object/search clients or ORM sessions?
 - Do ordinary SQLAlchemy repositories use matching sync/async `Connection` statement APIs and share the application's outer transaction, while enabled concurrency cases use separately named committed-state repositories without exposing raw connections?
 - Does `create` build the minimally valid object, with optional fields omitted and semantic constructors for recurring states?
 - Was repository minimality checked against the real storage/resource contract, and do file/object `create` methods generate ordinary valid key/body defaults?
@@ -95,11 +105,13 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Are real protocol-compatible internal dependencies reduced only by unobservable reliability guarantees?
 - Does the selected infrastructure/Compose/Testcontainers policy match `pyproject.toml`?
 - Are isolated database/vhost/bucket/namespace resources created programmatically, uniquely named, and always removed?
-- Are migrations upgraded and obligatorily downgraded in process, with downgrade failures visible even while cleanup continues?
+- Are migrations upgraded and their complete configured reverse lifecycle run in process, with reversal failures or unsupported irreversible migrations reported visibly even while cleanup continues?
+- Does messaging teardown delete the isolated namespace/resources without invoking or testing inverse production topology declarations?
 - Does every ordinary DB case use one rollback transaction, with savepoint opt-in only when an expected production rollback can invalidate it, and do enabled concurrency cases instead use independently committing participants plus deterministic committed-state cleanup?
 - Is savepoint selection absent from the general binding path and activated only by the explicit opt-in composition?
 - Are Publisher/Collector/DeliverySource roles distinct, domain-named, test-owned in wire encoding, deterministic, exact-cardinality, no-wait, and fully cleaned?
 - Do outbound systems use isolated domain Services over the selected external backend policy? In `mixed` mode, is each integration's backend stable across the suite and hidden behind the same Service API?
+- When application code maps per-item dependency errors, does the Service or real protocol-compatible path cover homogeneous and mixed responses with exact multiplicity, without patching the production client or retesting SDK reliability?
 - Are retries/backoff disabled, timeout failures immediate, messaging waits absent, and `sleep` banned everywhere?
 - Is bounded immediate polling limited to non-messaging artifacts with no deterministic completion signal?
 - Are timestamps/deadlines/TTL checked against real invocation bounds and documented resolution without time freezing or arbitrary slack?

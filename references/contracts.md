@@ -3,6 +3,8 @@
 ## Contents
 
 - [Scope and invocation](#scope-and-invocation)
+- [Contract-first test-first workflow](#contract-first-test-first-workflow)
+- [Scenario matrix](#scenario-matrix)
 - [Idempotency contracts](#idempotency-contracts)
 - [WebSocket contracts](#websocket-contracts)
 - [Performance doubles](#performance-doubles)
@@ -31,7 +33,43 @@ Fixture setup, repository arrange/inspection, external Service planning, applica
 
 Do not call registration/login/another endpoint, a preparatory job, or an unrelated message to arrange state. Trust neighboring application contracts and prebuild prerequisites with repositories, fixtures, configuration, payload builders, and Services.
 
-When an API dispatches asynchronous work, its direct contract ends at the exact queued message/task plus the synchronous response. Do not run the worker from the API test to prove the final state. Give the worker/job/handler its own contract test through its own public invocation boundary.
+When an API dispatches asynchronous work, its direct contract ends at the exact queued message/task plus the synchronous response. Do not run the worker from the API test to prove the final state. Give the worker/job/handler its own contract test through its own public invocation boundary. Classify the dispatch completion contract before writing the test: response completion may synchronize an awaited broker acceptance; an explicitly scheduled local task needs a public queued-task artifact; genuinely later fire-and-forget work with no supported deterministic completion boundary is an observability blocker, not permission to race an immediate read.
+
+## Contract-first test-first workflow
+
+Use this workflow when the user asks to implement or change application behavior, including an authorized application bug fix. It applies to the requested behavior—not to an unrelated full-suite expansion.
+
+1. Identify the public operation identity and authoritative requirement. Build a transient matrix containing the primary contract, relevant access/validation/errors/business/metrics categories, every distinct observable scenario, direct artifact, and explicit exclusions.
+2. Resolve material product ambiguity before encoding an oracle. Do not use the current branch condition, DTO default, framework output, or a speculative desirable property as the requirement.
+3. Write the complete scoped black-box test set and support graph without changing production behavior. Keep inputs and expectations independent and ensure every planned matrix row has a collected node.
+4. Run the focused selection and classify the red result. Record the failing nodes and why they prove missing/wrong behavior. Fixture, environment, syntax, import, and oracle failures are not acceptable red evidence when the public boundary already exists.
+5. If every new case unexpectedly passes, stop. Verify that the behavior already exists and mutation-think the tests against plausible regressions; do not create a no-op implementation diff.
+6. Implement the smallest cohesive application change that satisfies the complete matrix. Do not reveal internals to tests, add a test-only entrypoint, or implement one branch at a time by weakening the remaining tests.
+7. Obtain green on the focused selection, run deterministic lint, run semantic audit/reconciliation, then run proportionate broader checks and refactor only while green. Rerun every check affected by refactoring before reporting the final reconciled state.
+
+An entirely new importable job/worker/public symbol may initially produce a collection failure because the public symbol does not exist. Likewise, a new route or discriminator may make the whole matrix fail only with one coarse `404`/unregistered outcome. Treat either result as provisional evidence of missing registration, not evidence that the scenario oracles distinguish the behavior. Add only the approved real registration/composition skeleton, rerun, and obtain assertion-level red for the remaining response/artifact behavior before implementing it. Existing reachable boundaries should fail directly on their promised response or artifact.
+
+For a pure refactor, first demonstrate a green relevant baseline and preserve it; do not invent a failing test. For a test-only request, a confirmed application defect may remain red and must be reported instead of silently changing production. Chronology is execution evidence, not a final-tree property: do not add a policy marker, test-plan file, or pyproject key merely to claim test-first.
+
+## Scenario matrix
+
+Build scenarios from observable contract partitions, not from a desire to execute every line. Authoritative requirements and independently owned public protocol definitions establish expected truth. Registered/reachable declarations and application-owned branches that change a response, emitted message, settlement, persisted state, cache/object artifact, or another direct observation reveal candidate partitions that coverage may have missed; they do not define the oracle. When such an observable branch lacks an authoritative contract, record a finding or request a product decision rather than silently preserving the current implementation.
+
+Include applicable partitions such as:
+
+- absent/present/final/stale state and meaningful state transitions;
+- current principal versus another user, tenant, auth session, application, owner, or namespace when identity is scoped;
+- exact compound identity reuse versus one changed identity member;
+- missing/mismatched prerequisite and acknowledged no-op when they have distinct settlement or artifacts;
+- time/date/TTL boundaries measured without time freezing;
+- homogeneous success/error and mixed result partitions for continuing batch operations;
+- dependency partial-response mapping when application code interprets per-item success/error data.
+
+When configuration changes behavior, make the input override and expected outcome explicit in the case or parametrization. A fixture may apply those values before composition, and an indirect production `Settings` fixture may remain in the test signature to select that composition, but the test never reads it, its defaults, or parsed values to discover what it should expect. If several expected fields derive from one configured contract value, bind a test-owned immutable expected context alongside the override rather than using the production configuration object as the oracle.
+
+For a compound ownership key such as `(user_id, media_id)`, positive coverage for the current user is incomplete by itself. Arrange an access record for another user against the same resource and prove that the current user remains unauthorized/locked and that a current-user write creates its own artifact rather than treating the other user's artifact as idempotent state.
+
+A branch that changes no public observation need not receive a test. A defensive branch reachable only through impossible/corrupt internal state is not promoted to a contract unless requirements explicitly promise tolerance for that state. Conversely, do not collapse distinct observable handler outcomes merely because they share an HTTP status, acknowledgement, or generic error envelope: compare their direct state/message/object artifacts. For batch outputs, preserve exact cardinality and duplicate multiplicity; `set(...)` or a set comprehension is not evidence when duplicate output is a defect.
 
 ## Idempotency contracts
 
@@ -45,6 +83,8 @@ Use the smallest complete sequence—normally exactly two invocations—and keep
 4. assert the promised second terminal response/settlement and exact artifact cardinality/state after both calls.
 
 Prove absence of duplicate effects positively: exact row/message/object/ledger counts, unchanged versions/balances, or the natural equivalent. An equal second response or an empty dead-letter queue alone does not prove idempotency. For duplicate message delivery, prove both deliveries settle according to policy and the handler-owned artifact occurs once. Do not add sleeps, concurrency, retries, or a third call unless the contract distinguishes another phase.
+
+A single invocation after arranging the already-final state proves only that state partition. It does not prove repeated-call idempotency because the operation never established the first result. Reuse the primary complete response/artifact oracle for the first invocation; do not weaken the idempotency case to `len(...)`, a discriminator/type check, or one balance field when a malformed stored terminal result could still pass.
 
 If the contract defines changed-payload reuse, in-flight replay, failure consumption, retryable failure, expiry, or an idempotency window, give each distinct promised outcome its own parameter row/case. Otherwise do not invent those variants. Keep a cohesive idempotency contract in `test_idempotency.py`; do not hide it in generic business logic or split the first and repeated observations across tests.
 
@@ -135,6 +175,8 @@ async def test_contract(authorized_api_client, character_repository):
 Assert natural observations directly. A separately bound checked result is `actual` or `actual_*`; a separately bound expected value is `expected` or `expected_*`. Arrange-only entities retain domain names. Status, headers, body, database rows, and stored objects are separate observations and may have separate assertions. Do not rebind them to generic `result` or manufacture a dictionary/dataclass/tuple merely to combine them.
 
 When one natural value is already compound, compare that entire value with one equality assertion. The primary contract compares the exact complete public value: a PATCH or partial input does not make unchanged stable response fields optional. Exact dictionaries enforce key sets; exact lists enforce length, order, and nesting. Do not split one response body/model/list into an assertion per member. Use a focused membership/range/identity predicate only when it is the clearest expression of one edge condition.
+
+Do not convert a returned or stored collection to a set when duplicate multiplicity is observable. Compare the exact list/tuple when ordered, or use `UnorderedList`/an equivalent one-to-one matcher when order is not contractual. For rendered HTML/SSR, avoid whole-document snapshots of framework markup; parse or select the application-owned view fields and prove the complete relevant state, including echoed identifiers, action target, CSRF/control state, and mixed result/error partitions.
 
 Keep short values inline. Expected-value builders and matchers keep semantic callable/class names rather than `expected_*`.
 
@@ -284,7 +326,7 @@ async def test_name(
     assert actual_response.json().get("error") == expected_error
 ```
 
-Validation proves only whether the application accepts or rejects the supplied value. A valid row checks the exact public acceptance signal, not downstream business output/artifacts already protected elsewhere. An invalid row checks the validation error contract. Matchers are allowed only on the expected side for dynamic error leaves; keep the tested field, exact boundary result, location, error code, and contractual message literal whenever fixed.
+Validation proves only whether the application accepts or rejects the supplied value. A valid row checks the exact public acceptance signal, not downstream business output/artifacts already protected elsewhere. An invalid row checks the validation error contract. When rejection contractually forbids direct effects and the implementation path could reach them before rejection, add one focused rejection-safety case that proves the relevant artifact is absent; do not repeat that artifact assertion in every invalid parameter row. Matchers are allowed only on the expected side for dynamic error leaves; keep the tested field, exact boundary result, location, error code, and contractual message literal whenever fixed.
 
 When a valid row would trigger unrelated expensive work, a performance double may suppress that work only under the conditions above. It must not replace the validator or any code responsible for acceptance/rejection.
 
@@ -294,11 +336,13 @@ Inventory depth follows the task. A focused change inspects its relevant surface
 
 Turn that inventory into a transient contract-evidence matrix before declaring the suite complete. For every discovered operation record its stable public identity, applicable generalized registry rule and depth, terminal test component, primary contract node, applicable categories, and application-owned observable outcome classes. Build outcome classes from public contracts plus implementation inspection (for example accepted, rejected, preserved, dispatched, registered, acknowledged, or dead-lettered), but assert only public responses/direct artifacts rather than internal branches. Every outcome maps to a test node or a documented scope decision. The matrix is audit evidence, not persistent micromanagement: never copy public operations into `pyproject.toml` or maintain a per-operation registry.
 
-Operation presence and a `test_contract` node prove only census completeness. Scenario completeness is a separate semantic pass: inspect authoritative functional requirements together with application-owned source branches and partitions, then enumerate every distinct public outcome, meaningful state partition, isolation dimension, contractual boundary, and direct artifact. Map every public-contract item to an actually collected case. Generalized policy decisions may scope only non-contract surfaces and the recorded concurrency boundary; they never exempt public or registered contracts. Collapse implementation branches only when they are observationally identical at the public boundary; never omit a promised outcome merely because another case executes nearby code.
+Operation presence and a `test_contract` node prove only census completeness. Scenario completeness is a separate semantic pass: derive expected outcomes from authoritative functional requirements, then inspect application-owned source branches and partitions for missing candidates. Enumerate every confirmed distinct public outcome, meaningful state partition, isolation dimension, contractual boundary, and direct artifact, and map every public-contract item to an actually collected case. An observable source-only candidate with no authoritative meaning becomes a finding or product question, never an implementation-derived oracle. Generalized policy decisions may scope only non-contract surfaces and the recorded concurrency boundary; they never exempt public or registered contracts. Collapse implementation branches only when they are observationally identical at the public boundary; never omit a promised outcome merely because another case executes nearby code.
 
 A `focused` generalized registry rule still requires enumerating the complete matching surface before selecting the promised depth. It is not permission to sample a convenient subset silently. Report which applicable aspects are covered for every matching operation and which generalized policy excludes the rest.
 
-Always treat every public product HTTP/JSON-RPC/WebSocket operation and every registered job, scheduled task, consumer operation, and incoming-message handler as contract-bearing. They require independent coverage without a registry entry or permission to omit them. The handler contract remains mandatory when a worker hosts it; generic worker runtime mechanics do not become a separate mandatory operation merely because the process is registered.
+Always treat every public product HTTP/JSON-RPC/WebSocket operation and every registered job, scheduled task, consumer operation, and incoming-message handler as contract-bearing. They require independent coverage without a registry entry or permission to omit them. The handler contract remains mandatory when a worker hosts it; generic worker runtime mechanics do not become a separate mandatory operation merely because the process is registered. Broker resources, bindings, QoS, and consumer/handler registration are not operations in this census: infrastructure bootstrap validates them once before the suite uses messaging.
+
+Inspect the final registered route/action table, not only obvious router decorators or test directories. Framework actions may expose a confirmation/rendering GET and a mutating POST, mounted views may add method-specific handlers, and admin/framework registrations may synthesize functional paths. Each reachable functional `method + path` remains a separate operation even when both methods form one UI flow. Documentation/schema generation alone remains excluded.
 
 Exclude endpoints whose sole purpose is API documentation, generated schema exposure, Swagger/OpenAPI UI support, or a documentation-only schema registry. Do not add a terminal test component or snapshot generated documentation for them. Keep a functional operation in the matrix when it also happens to be documented; classify by behavior, not by path naming or schema visibility.
 
@@ -356,15 +400,17 @@ The hierarchy and common category meanings are an adaptive default, not a reason
 
 Choose every category filename by the public behavior it groups. The primary contract is not automatically business logic and belongs in the category that accurately names what it proves:
 
-- business rules, domain outcomes, state transitions, retry, and business/config variants in `test_business_logic.py`;
+- business rules, domain outcomes, state transitions, retry, and business/config variants in `test_business_logic.py`, including validly shaped requests rejected by domain state such as insufficient balance;
 - an explicitly promised repeated-operation contract in `test_idempotency.py`;
 - unauthenticated rejection and authorized access in `test_access.py` when protected;
 - every public input in `test_validation.py`;
-- application-owned failures in `test_errors.py`;
+- application-owned transport, dependency, operational, and non-domain failures in `test_errors.py`;
 - emitted/suppressed metrics in `test_metrics.py` when present;
 - another cohesive public contract aspect in a concise `test_<behavior>.py`, such as `test_connection.py` for a WebSocket route or `test_registration.py` for an explicitly selected registration contract.
 
 Use one category for a cohesive family of cases, not a separate filename per case, parameter, or outcome. Never use `test_business_logic.py` as a generic primary-success file, and do not create `test_success.py`, `test_happy_path.py`, `test_works.py`, vague `test_behavior.py`/`test_technical.py`, or empty category files. Prefer an established precise term over inventing a synonym. With a preserved mature layout, adapt an already unambiguous equivalent rather than renaming files without explicit authorization. Never substitute another endpoint, smoke test, access case, validation row, workflow, or fixture bootstrap for the operation's own primary contract.
+
+Classify by the meaning of the contract, not merely by the fact that the response is error-shaped. A domain rejection belongs with the rule that produces it; an infrastructure/dependency/protocol failure belongs with errors. Preserve a mature layout whose ownership is already coherent instead of starting a mass rename solely to adopt this vocabulary.
 
 Under the standard layout, non-API product groups use the same functional/optional-area/terminal-component rule. Never create `test_infrastructure/` or `test_application/`: infrastructure and application startup are suite prerequisites, not separately tested behavior.
 
@@ -378,9 +424,11 @@ media.deleted consumer    -> test_consumers/test_media_deleted/
 
 Give each such component its own applicable errors, business rules, artifacts, configuration, metrics, and regressions. Use validation coverage when the public input contract has application-owned validation. Do not count another job/consumer, a workflow, fixture bootstrap, or a shared runner smoke test as coverage.
 
-Separate shared worker/runtime contracts from handler contracts. Cross-cutting dispatch, envelope rejection, acknowledgement/requeue/dead-letter policy, and unknown-message behavior belong to one dedicated worker/runtime component only when that worker boundary is itself selected for coverage. Each handler component tests only handler-specific input, application-owned errors/business rules, and direct artifacts; it does not repeat generic runtime cases. Conversely, a shared worker/runtime contract never substitutes for a handler's own `test_contract`. If runtime mechanics are not in the public contract, observe only the handler's public outcome unless the user explicitly opts into additional focused coverage.
+Separate shared worker/runtime behavior from handler contracts. Cross-cutting dispatch, envelope rejection, acknowledgement/requeue/dead-letter policy, and unknown-message behavior belong to one dedicated worker/runtime component only when that behavior is itself selected for coverage. Each handler component tests only handler-specific input, application-owned errors/business rules, and direct artifacts; it does not repeat generic runtime cases. Conversely, a shared worker/runtime behavior contract never substitutes for a handler's own `test_contract`. If runtime behavior is not in the public contract, observe only the handler's public outcome unless the user explicitly opts into additional focused coverage.
 
-When worker runtime or registration is selected, put the actual broker/consumer composition contract in `test_topology.py`. Observe the production declaration/registration path and verify only application-owned choices such as exchange/topic and queue/subscription identity, binding/routing, dead-letter policy, durability/auto-delete settings, QoS/prefetch, and handler/discriminator registration when they are part of the selected contract. Do not test broker reliability or reimplement production topology through a parallel test DTO/helper. Keep the check deterministic: use a supported composition/start seam that returns after registration, inspect its natural broker/framework artifacts, and close it immediately without live waiting, timeout polling, or message-processing assertions. Settlement policy remains in its own behavior category and every handler keeps its own component.
+Do not create `test_topology.py`, a topology component, or topology cases under another name. Exchange/topic/queue/subscription identity and type, bindings/routing, dead-letter arguments, durability/auto-delete, QoS/prefetch, and consumer/handler registration belong to the mandatory messaging bootstrap described in [infrastructure.md](infrastructure.md). They do not receive contract-matrix rows, TestClass cases, parametrization, or runtime coverage-registry decisions. Settlement policy remains a separately selectable behavior contract.
+
+For a registered handler, derive its outcome matrix from public input and every application-owned branch with a distinct observable result in a contractually reachable or explicitly tolerated state. Include acknowledged no-op/missing target, stale or mismatched accepted state, prerequisite absence, preservation/rejection, lock ownership outcome, and date/TTL boundary only when they change settlement or direct artifacts. Do not manufacture corrupt state, assert internal calls/locks/queries, or mirror private branches that collapse to an already-covered public result.
 
 For every registered scheduler, prove the actual framework registration: observe the callback and trigger registered through the supported scheduler composition/inspection boundary. Manually calling a wrapper plus comparing a separately maintained schedule DTO does not protect `add_job(...)`, callback wiring, or trigger configuration. Keep this deterministic; do not start a live clock-driven scheduler merely to invoke the callback manually, because a background tick creates a second-invocation race.
 

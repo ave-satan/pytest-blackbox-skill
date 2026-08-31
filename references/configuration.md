@@ -77,7 +77,7 @@ When the key is absent, dependency management is inactive: do not modify depende
 
 ## Coverage registry
 
-Public product HTTP/JSON-RPC/WebSocket operations and registered jobs, schedulers, and incoming-message handlers are always contract-bearing and always covered. Never add them to the registry and never request permission to omit them. A worker's registered handlers are covered this way; generic dispatch/acknowledgement/requeue/runtime mechanics are a separate non-contract surface unless intentionally selected.
+Public product HTTP/JSON-RPC/WebSocket operations and registered jobs, schedulers, and incoming-message handlers are always contract-bearing and always covered. Never add them to the registry and never request permission to omit them. A worker's registered handlers are covered this way; generic dispatch/acknowledgement/requeue runtime behavior is a separate non-contract surface unless intentionally selected. Broker topology and consumer/handler registration are not coverage surfaces at all: the mandatory session fixture runs the real production bootstrap and they never receive registry entries.
 
 Documentation-only endpoints, generated OpenAPI/Swagger/schema output, and documentation UIs are excluded without a registry entry: they accompany functional contracts but do not create them. Do not snapshot or test them through this suite. An endpoint that performs product behavior is not documentation-only merely because it is described in OpenAPI.
 

@@ -4,8 +4,9 @@
 
 Black-box pytest contract testing workflows for Codex and Claude Code.
 
-Pytest Blackbox helps coding agents discover, lint, write, repair, review,
-upgrade, and audit Python contract tests through public application boundaries.
+Pytest Blackbox helps coding agents discover, lint, develop test-first, write,
+repair, review, upgrade, and audit Python contract tests through public
+application boundaries.
 It is designed for HTTP, JSON-RPC, and WebSocket APIs, jobs, schedulers,
 workers, message handlers, databases, caches, object stores, brokers, and
 outbound HTTP integrations.
@@ -13,9 +14,15 @@ outbound HTTP integrations.
 > **Status:** early release, distributed directly from GitHub. Publication in
 > public plugin directories is deferred.
 
+The marketplace catalogs intentionally pin the latest released tag. Changes
+listed under `[Unreleased]` are available from a development checkout and
+become part of normal marketplace installation only after the next release tag
+is published.
+
 ## What it optimizes for
 
 - Public contracts instead of implementation details.
+- Contract-first red-green delivery before production behavior changes.
 - The real composed application instead of unit tests.
 - Independent inputs and expectations instead of production-derived oracles.
 - No mocking or monkeypatching of application source internals.
@@ -34,7 +41,8 @@ project's existing `pyproject.toml` rather than in a separate plugin config.
 | --- | --- |
 | `discover` | Inspect a project read-only and propose project-wide test policy. |
 | `lint` | Run deterministic machine-checkable policy diagnostics. |
-| `write` | Add black-box contract coverage for requested application behavior. |
+| `develop` | Implement application behavior through a contract-first test-first workflow. |
+| `write` | Add test-only black-box contract coverage without changing production. |
 | `repair` | Diagnose and repair existing failing or nondeterministic tests. |
 | `review` | Perform a focused, read-only review of tests or a test diff. |
 | `upgrade` | Apply release-specific project migrations from the changelog. |
@@ -48,6 +56,7 @@ invoked explicitly.
 ```text
 $pytest-blackbox:discover
 $pytest-blackbox:lint
+$pytest-blackbox:develop
 $pytest-blackbox:write
 $pytest-blackbox:repair
 $pytest-blackbox:review
@@ -60,6 +69,7 @@ $pytest-blackbox:audit
 ```text
 /pytest-blackbox:discover
 /pytest-blackbox:lint
+/pytest-blackbox:develop
 /pytest-blackbox:write
 /pytest-blackbox:repair
 /pytest-blackbox:review
@@ -213,6 +223,7 @@ pytest-blackbox-skill/
 ├── submission/
 └── skills/
     ├── audit/
+    ├── develop/
     ├── discover/
     ├── lint/
     ├── repair/
