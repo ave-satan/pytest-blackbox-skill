@@ -152,8 +152,8 @@ def semantic_findings(
             severity="MANUAL",
             code="SEM011",
             message=(
-                "verify every public domain-facing test-support class, fixture, and "
-                "method uses its "
+                "verify every public domain-facing test-support class, fixture, "
+                "callable, and module uses its "
                 "role plus the shortest truthful domain action/target/state/outcome and "
                 "cardinality, starting from canonical operations and adding only the "
                 "smallest qualifier needed among siblings without repeating the owner noun; "
@@ -161,7 +161,10 @@ def semantic_findings(
                 "details and raw storage references private; keep base canonical CRUD "
                 "available and forbid cross-component private-member access; "
                 "generic structural/protocol primitives use precise abstraction-level "
-                "names without child-domain defaults"
+                "names without child-domain defaults; reusable response-oracle "
+                "builders live at the narrowest common owner in role-explicit modules "
+                "and name the exact returned artifact (body, headers, or complete "
+                "response) rather than a domain entity or generic expected_* role"
             ),
         )
     )

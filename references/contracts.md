@@ -186,7 +186,22 @@ Do not convert a returned or stored collection to a set when duplicate multiplic
 
 Keep short values inline. Expected-value builders and matchers keep semantic callable/class names rather than `expected_*`.
 
-Do not hide assertions in helpers. Repeated expected structures become builders; reusable constraints become pure equality matchers. The test still contains a natural assertion such as `assert actual_response_body == expected_response(...)` or `assert actual_created == Matcher(...)`.
+Do not hide assertions in helpers. Repeated expected structures become builders; reusable constraints become pure equality matchers. The test still contains a natural assertion such as `assert actual_response_body == user_profile_body(...)` or `assert actual_created == Matcher(...)`.
+
+### Expected response builders
+
+Keep a one-off expected response body, headers mapping, event, frame, or envelope inline. Extract an ordinary pure builder only when the same complete public artifact contract is reused. Put it at the narrowest common owning test surface in a role-explicit module: under the standard layout use `responses.py` for HTTP/JSON-RPC response artifacts, or a precise protocol artifact module such as `events.py`/`frames.py` when that is the natural public value. With `layout = "preserve"`, retain an existing equally role-explicit equivalent rather than moving unrelated support merely to adopt the standard filename. Do not use a domain-noun-only module such as `profile.py`, or vague `helpers.py`/`builders.py`, when the module's actual role is response-oracle construction.
+
+The callable remains self-describing after a direct import and names exactly what it returns:
+
+- `<contract>_body()` for a parsed response body;
+- `<contract>_headers()` for response headers;
+- `<contract>_response()` only for a complete typed response projection rather than a body dictionary;
+- the corresponding exact artifact name for an event, frame, envelope, or other non-response value.
+
+Do not name a response-body builder only after the domain entity, such as `user_profile()`: that reads as a domain factory and hides the oracle artifact. Do not add an `expected_*` prefix either—the callable names the semantic artifact, while separately bound expected values use `expected`/`expected_*`. Repeating `body`, `headers`, or `response` at the call site is useful role information even when the owning module is named `responses.py`, because direct imports erase module context.
+
+A response-oracle builder returns one exact complete test-owned public structure, optionally with explicit field overrides for legitimately shared variants. It never accepts the actual response/result, reads production schemas/DTOs/defaults/constants, queries repositories, arranges state, invokes the application, asserts, or chooses among unrelated contracts through a mode flag. If sibling operations only resemble one another but do not own the same response contract, keep separate local builders instead of coupling their expected truth.
 
 Use module-level functions for ordinary cases. Prefer a pytest `TestClass` when several complete cases can safely reuse materially expensive identical composition/preparation. A fixture performs arrange and one invocation before each method; the method contains every assertion for its own case. Never split one invocation's response/storage observations across methods, share mutable case state, rely on method order, or create a class for one case/cosmetic grouping. Only immutable behavior-independent machinery may use class/session scope. Ordinary support classes such as repositories, Services, Publishers, Collectors, matchers, dataclasses, DTOs, and client wrappers remain unrestricted by this test-class rule.
 

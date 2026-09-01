@@ -108,6 +108,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 - Do file contracts use builders that derive success/boundary/error variants, with real files only as templates?
 - Do matcher constraints avoid finite sentinels for unbounded domains?
 - Are exact mappings/lists and simple length/membership checks expressed natively, with `OrderedList` reserved for contractual order plus useful matcher composition/diagnostics, and one-field ordered projections expressed as ordinary list comprehensions rather than lists of partial element matchers?
+- Do reusable response-oracle builders live at the narrowest common owner in a role-explicit module, use return-truthful names such as `<contract>_body`/`<contract>_headers`, remain pure and production-independent, and leave one-off expected structures inline?
 
 ## Infrastructure, messaging, and time
 

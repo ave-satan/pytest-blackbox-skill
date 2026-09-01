@@ -6,6 +6,8 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-01
+
 ### Changed
 
 - Validation coverage now uses separate homogeneous parametrized functions for
@@ -18,6 +20,12 @@ apply only relevant migrations without rerunning a full suite audit.
   outcome directly; rejection rows parameterize only input and genuinely
   varying error details. `VAL001` detects the common mixed structural form and
   `SEM012` owns the complete semantic reconciliation.
+- Reusable expected response artifacts now use pure builders at the narrowest
+  common owner. Role-explicit modules such as `responses.py` contain callables
+  named for the exact returned artifact (`<contract>_body`,
+  `<contract>_headers`, or a true complete `<contract>_response`), while
+  one-off expected structures remain inline. `SEM011` reviews this naming and
+  ownership without imposing a heuristic filename lint.
 
 ### Existing-project actions
 
@@ -41,6 +49,28 @@ apply only relevant migrations without rerunning a full suite audit.
 - **No-op when:** every validation field/relationship already has homogeneous
   accepted and rejected coverage with readable row IDs and direct fixed-outcome
   assertions.
+
+#### PBB-MIG-0.9.0-02 — Name reusable response oracles by artifact
+
+- **Condition:** a reusable expected response builder lives in a domain-noun or
+  vague helper/builder module, or its callable name looks like a domain entity
+  factory and does not reveal whether it returns a body, headers, or a complete
+  response projection.
+- **Action:** keep one-off expected structures inline. Under the standard
+  layout, move genuinely reused response-oracle builders to `responses.py` at
+  their narrowest common owning test surface (or to the precise natural
+  protocol artifact module). With `layout = "preserve"`, retain an existing
+  equally role-explicit equivalent. Rename each touched callable after its exact
+  returned artifact: `<contract>_body`, `<contract>_headers`, or
+  `<contract>_response` only for a complete response projection. Update direct
+  imports so the call site remains self-describing.
+- **Do not:** add an `expected_*` prefix to builders, call a body dictionary a
+  full response, merge merely similar sibling contracts, move a local builder
+  to broader shared support, or extract a builder used by only one expected
+  assertion.
+- **No-op when:** every reused response oracle already has truthful artifact
+  naming, pure test-owned construction, narrow common ownership, and a
+  role-explicit standard or coherently preserved module.
 
 ## [0.8.0] - 2026-08-31
 
@@ -801,7 +831,8 @@ No project-file migration was required.
 - The shared black-box pytest policy, project onboarding, fallback discovery,
   and deterministic auditor.
 
-[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.5.0...v0.6.0
