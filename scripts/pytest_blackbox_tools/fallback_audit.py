@@ -1623,6 +1623,8 @@ class Audit:
         aliases: dict[str, str],
     ) -> None:
         parametrized_names: set[str] = set()
+        validation_expected_status = False
+        validation_no_error_sentinel = False
         for decorator in decorators:
             if not isinstance(decorator, ast.Call):
                 continue
@@ -1635,8 +1637,27 @@ class Audit:
                         self.test_fixture_uses.append((path, {argument.value}))
             if name.rsplit(".", 1)[-1] != "parametrize" or len(decorator.args) < 2:
                 continue
-            parametrized_names.update(self.parametrize_names(decorator.args[0]))
+            parameter_names = self.parametrize_names(decorator.args[0])
+            parametrized_names.update(parameter_names)
             rows = decorator.args[1]
+            if path.name == "test_validation.py":
+                validation_expected_status = validation_expected_status or any(
+                    parameter_name.lower().startswith("expected")
+                    and "status" in parameter_name.lower()
+                    for parameter_name in parameter_names
+                )
+                error_indexes = {
+                    index
+                    for index, parameter_name in enumerate(parameter_names)
+                    if "error" in parameter_name.lower()
+                }
+                if error_indexes and isinstance(rows, (ast.List, ast.Tuple)):
+                    validation_no_error_sentinel = validation_no_error_sentinel or any(
+                        index < len(values) and self.is_none_sentinel(values[index])
+                        for row in rows.elts
+                        for values in (self.parametrize_row_values(row),)
+                        for index in error_indexes
+                    )
             if isinstance(rows, (ast.List, ast.Tuple)):
                 ids_node = next(
                     (
@@ -1698,6 +1719,18 @@ class Audit:
             or name.lower().endswith("case")
             or "_case_" in name.lower()
         }
+        if path.name == "test_validation.py" and (
+            validation_expected_status or validation_no_error_sentinel
+        ):
+            self.add(
+                "ERROR",
+                "VAL001",
+                path,
+                test.lineno,
+                "validation acceptance and rejection use separate homogeneous "
+                "parametrizations; assert the fixed status directly and do not use "
+                "a nullable/no-error parameter sentinel",
+            )
         if not scenario_names:
             return
         for node in ast.walk(test):
@@ -1720,16 +1753,34 @@ class Audit:
                 )
 
     @staticmethod
-    def parametrize_names(node: ast.AST) -> set[str]:
+    def parametrize_names(node: ast.AST) -> tuple[str, ...]:
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            return {part.strip() for part in node.value.split(",") if part.strip()}
+            return tuple(part.strip() for part in node.value.split(",") if part.strip())
         if isinstance(node, (ast.List, ast.Tuple)):
-            return {
+            return tuple(
                 element.value
                 for element in node.elts
                 if isinstance(element, ast.Constant) and isinstance(element.value, str)
-            }
-        return set()
+            )
+        return ()
+
+    @staticmethod
+    def parametrize_row_values(row: ast.AST) -> tuple[ast.AST, ...]:
+        if isinstance(row, ast.Call) and dotted_name(row.func) == "pytest.param":
+            return tuple(row.args)
+        if isinstance(row, (ast.List, ast.Tuple)):
+            return tuple(row.elts)
+        return (row,)
+
+    @staticmethod
+    def is_none_sentinel(node: ast.AST) -> bool:
+        if isinstance(node, ast.Constant):
+            return node.value is None
+        return (
+            isinstance(node, ast.Lambda)
+            and isinstance(node.body, ast.Constant)
+            and node.body.value is None
+        )
 
     def audit_param_row(self, path: Path, row: ast.AST) -> None:
         if not isinstance(row, ast.Call) or dotted_name(row.func) != "pytest.param":

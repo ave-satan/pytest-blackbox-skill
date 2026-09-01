@@ -6,6 +6,42 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+### Changed
+
+- Validation coverage now uses separate homogeneous parametrized functions for
+  acceptance and rejection of each field or contractual field relationship.
+  Valid boundaries and all allowed enum/discriminator members stay in
+  `test_<field>_accepted`; outside-boundary and other invalid values stay in
+  `test_<field>_rejected`.
+- Validation parametrization no longer carries expected status or nullable
+  error sentinels across mixed outcomes. Each function asserts its fixed public
+  outcome directly; rejection rows parameterize only input and genuinely
+  varying error details. `VAL001` detects the common mixed structural form and
+  `SEM012` owns the complete semantic reconciliation.
+
+### Existing-project actions
+
+#### PBB-MIG-0.9.0-01 — Split validation acceptance and rejection
+
+- **Condition:** one validation function mixes accepted and rejected rows,
+  parameterizes expected response status, uses `None`/a no-error factory as an
+  acceptance sentinel, or branches assertions by outcome/error presence.
+- **Action:** split each affected field or contractual field relationship into
+  homogeneous `test_<field>_accepted` and `test_<field>_rejected` functions.
+  Move ordinary valid values, valid boundaries, and every allowed enum member
+  to the accepted parametrization; move nearest outside-boundary values,
+  disallowed enum members, and other invalid forms to the rejected
+  parametrization. Assert the fixed acceptance/rejection status directly and
+  keep only genuinely varying exact error details in rejection rows. When
+  rejected variants have distinct public error contracts, use additional
+  narrowly named rejection-only functions rather than a mixed outcome matrix.
+- **Do not:** duplicate downstream business/artifact assertions in valid rows,
+  create a function per parameter row, combine unrelated fields, or replace the
+  split with status/error conditionals.
+- **No-op when:** every validation field/relationship already has homogeneous
+  accepted and rejected coverage with readable row IDs and direct fixed-outcome
+  assertions.
+
 ## [0.8.0] - 2026-08-31
 
 ### Changed

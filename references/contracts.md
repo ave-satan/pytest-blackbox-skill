@@ -234,7 +234,7 @@ Names are derived from the current complete case set, not frozen when the first 
 - Access: `test_unauthenticated`, `test_authorized`.
 - Errors: `test_not_found`, `test_conflict`, `test_dependency_unavailable`.
 - Metrics: `test_emits_request_count`, `test_skips_failed_request`.
-- Validation: `test_<field>` or a relationship name such as `test_date_range`.
+- Validation: `test_<field>_accepted` and `test_<field>_rejected`, or the same pair with a relationship name such as `test_date_range_*`.
 
 Do not repeat the endpoint/component, category, HTTP method/path, `success`, `happy_path`, `works`, or Given/When/Then segments. Add qualifiers only to disambiguate contracts in one file.
 
@@ -278,38 +278,47 @@ Do not mix raw values and factories behind `if callable(...)`. Move a complex fa
 
 ## Validation
 
-Create exactly one parametrized `test_<field>` per field in `test_validation.py`. Keep unrelated fields valid and vary only the target. Combine fields only when the application defines a relationship between them. Do not introduce a TestClass merely to group the values of one validation field.
+Create separate homogeneous parametrized acceptance and rejection functions for each field in `test_validation.py`: `test_<field>_accepted` and `test_<field>_rejected`. Keep unrelated fields valid and vary only the target. Combine fields only when the application defines a relationship between them; use the same accepted/rejected pair with the relationship name. Do not introduce a TestClass merely to group the values of one validation field.
 
-For each field include:
+Across the pair for each field include:
 
 1. one randomized ordinary valid value when appropriate;
 2. every meaningful valid lower/upper boundary;
 3. the nearest representable invalid value immediately outside each boundary;
 4. representative invalid shapes/values required by the contract.
 
-For an enumeration or registered discriminator, test every publicly allowed member and at least one disallowed member instead of one randomized success. This public member set takes precedence over a broader transport/schema representation: do not invent a successful minimum/maximum string row when routing or dispatch correctly rejects every unregistered value. Keep the nearest invalid representation boundaries only when they remain useful acceptance/rejection evidence.
+The accepted function contains the ordinary valid value and every meaningful valid boundary. The rejected function contains the nearest values immediately outside each boundary plus the remaining invalid shapes/values. For an enumeration or registered discriminator, the accepted function tests every publicly allowed member and the rejected function tests at least one disallowed member instead of using one randomized success. This public member set takes precedence over a broader transport/schema representation: do not invent a successful minimum/maximum string row when routing or dispatch correctly rejects every unregistered value. Keep the nearest invalid representation boundaries only when they remain useful acceptance/rejection evidence.
 
-Keep acceptance and errors in one parametrization. Parameterize the complete expected observation so test control flow does not decode a scenario:
+Each function owns one fixed public outcome. Assert its status/acceptance signal directly rather than passing it through parametrization. Rejection rows may carry the varying exact expected error, but never an acceptance sentinel such as `None`; accepted rows do not carry error parameters. Do not branch on status, error presence, or an outcome/scenario label. When rejected inputs produce genuinely different public status/error contracts, use additional narrowly named rejection-only functions instead of restoring a mixed matrix.
 
 ```python
 @pytest.mark.parametrize(
-    ("name_factory", "expected_status", "expected_error"),
+    "name_factory",
     [
         pytest.param(
             random_valid_name,
-            201,
-            None,
             id="ordinary-valid-value",
         ),
         pytest.param(
             lambda: "aa",
-            201,
-            None,
             id="minimum-length",
         ),
+    ],
+)
+async def test_name_accepted(api_client, name_factory):
+    actual_response = await api_client.post(
+        PATH,
+        json=user_payload(name=name_factory()),
+    )
+
+    assert actual_response.status_code == 201
+
+
+@pytest.mark.parametrize(
+    ("name_factory", "expected_error"),
+    [
         pytest.param(
             lambda: "a",
-            422,
             {
                 "field": "name",
                 "code": "too_short",
@@ -319,19 +328,14 @@ Keep acceptance and errors in one parametrization. Parameterize the complete exp
         ),
     ],
 )
-async def test_name(
-    api_client,
-    name_factory,
-    expected_status,
-    expected_error,
-):
+async def test_name_rejected(api_client, name_factory, expected_error):
     actual_response = await api_client.post(
         PATH,
         json=user_payload(name=name_factory()),
     )
 
-    assert actual_response.status_code == expected_status
-    assert actual_response.json().get("error") == expected_error
+    assert actual_response.status_code == 422
+    assert actual_response.json()["error"] == expected_error
 ```
 
 Validation proves only whether the application accepts or rejects the supplied value. A valid row checks the exact public acceptance signal, not downstream business output/artifacts already protected elsewhere. An invalid row checks the validation error contract. When rejection contractually forbids direct effects and the implementation path could reach them before rejection, add one focused rejection-safety case that proves the relevant artifact is absent; do not repeat that artifact assertion in every invalid parameter row. Matchers are allowed only on the expected side for dynamic error leaves; keep the tested field, exact boundary result, location, error code, and contractual message literal whenever fixed.

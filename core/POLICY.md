@@ -38,6 +38,7 @@ Application defects need a failing public-contract case before the fix. Pure beh
 
 - Keep one complete behavioral case per collected test. Multiple assertions may remain together when they prove that case's response and direct artifacts.
 - Keep arrange -> one public invocation -> assertions visible. Parameter rows carry values/expected values or uniform arrange-time factories, each with a concise ID that never drives logic; create fresh values during arrange.
+- Validation keeps acceptance and rejection in separate homogeneous parametrized functions for each field or contractual field relationship. Rows never select the outcome through a parametrized status or nullable error sentinel, and rejected rows never share control flow with accepted rows.
 - Parameterize configuration overrides explicitly before startup and bind expected truth independently from production settings/defaults.
 - Put one exact complete primary contract first; later edge cases assert only their changed fact. Prefer native equality/operators and preserve multiplicity. Use explicit partial/matcher semantics only when they add contractual meaning; never reshape actual data or manufacture an aggregate solely for comparison.
 - Name bound observations `actual*` and expectations `expected*`; keep `assert` in the test. Wire outcomes remain values unless the public boundary is naturally exception-based. Never freeze time or sleep; use real interval/TTL bounds.

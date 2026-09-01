@@ -26,6 +26,13 @@ def _has_websocket_surface(tests_dir: Path, scopes: tuple[Path, ...]) -> bool:
     return False
 
 
+def _has_validation_surface(tests_dir: Path, scopes: tuple[Path, ...]) -> bool:
+    return any(
+        path.name == "test_validation.py"
+        for path in _scoped_python_files(tests_dir, scopes)
+    )
+
+
 def _named_surfaces(tests_dir: Path, *tokens: str) -> tuple[Path, ...]:
     candidates = sorted(
         (
@@ -270,6 +277,24 @@ def semantic_findings(
                     "Transport/Connection/functional Client ownership, narrow "
                     "fixture composition, and application-task failure propagation "
                     "without timeout waits"
+                ),
+            )
+        )
+    if _has_validation_surface(tests_dir, scopes):
+        findings.append(
+            Finding(
+                path=semantic_path,
+                line=1,
+                severity="MANUAL",
+                code="SEM012",
+                message=(
+                    "reconcile each validated field or contractual field relationship "
+                    "as separate homogeneous accepted/rejected parametrized functions; "
+                    "accepted rows own ordinary values, valid boundaries, and all "
+                    "allowed enum/discriminator members, while rejected rows own "
+                    "outside-boundary and invalid values plus exact varying errors; "
+                    "assert each function's fixed outcome directly without parametrized "
+                    "status, nullable error sentinels, or accepted/rejected branches"
                 ),
             )
         )

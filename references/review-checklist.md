@@ -64,6 +64,7 @@ Use this after reading the task-relevant references. Mark mechanically proven M 
 ## Validation and performance doubles
 
 - Does validation vary one field at a time, except contractually related fields?
+- Does every validated field/relationship use separate homogeneous `*_accepted` and `*_rejected` parametrized functions, with fixed outcome assertions and no parametrized status, nullable error sentinel, or accepted/rejected branch?
 - Do non-enum fields cover an ordinary valid value when appropriate, valid boundaries, nearest invalid values, and representative invalid shapes, while enums/registered discriminators cover every publicly allowed member plus an invalid member without fabricated successful rows from a broader schema representation?
 - Does validation assert only acceptance/rejection and validation error rather than repeat downstream business artifacts, with at most one focused rejection-safety case when rejected input must not produce a direct effect?
 - If a performance double is used, is it injected through a supported seam, unrelated to the asserted artifact, backed by real-path coverage, semantically removable except for cost, typed/reset, and free of internal call assertions?
