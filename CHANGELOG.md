@@ -6,6 +6,8 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-04
+
 ### Changed
 
 - Semantic reconciliation is now explicitly bidirectional. The transient
