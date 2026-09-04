@@ -9,9 +9,9 @@ apply only relevant migrations without rerunning a full suite audit.
 ### Changed
 
 - Every workflow skill now has consistent `Pytest Blackbox: <Action>` UI
-  metadata and an explicit branded action icon: magnifier for audit, code for
-  develop, spark for discover, checked lines for lint, wrench for repair, eye
-  for review, upward arrow for upgrade, and pencil for write.
+  metadata and an explicit black-filled branded action icon: magnifier for
+  audit, code for develop, spark for discover, checked lines for lint, wrench
+  for repair, eye for review, upward arrow for upgrade, and pencil for write.
 
 ## [0.10.0] - 2026-09-04
 
