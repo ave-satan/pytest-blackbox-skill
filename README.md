@@ -25,6 +25,7 @@ is published.
 - Contract-first red-green delivery before production behavior changes.
 - The real composed application instead of unit tests.
 - Independent inputs and expectations instead of production-derived oracles.
+- Bidirectional requirement-to-test and test-to-requirement reconciliation.
 - No mocking or monkeypatching of application source internals.
 - Protocol-compatible test infrastructure with isolated logical resources.
 - Deterministic completion without sleeps, retry delays, or messaging timeouts.
@@ -196,8 +197,9 @@ python scripts/audit_suite.py /path/to/project \
 - `lint_suite.py` emits mechanically provable diagnostics in Ruff-like text or
   JSON.
 - `audit_suite.py` adds every `SEM*` requirement applicable to its selected
-  scope or complete-suite boundary, including distinct operation/scenario
-  completeness reconciliation.
+  scope or complete-suite boundary, including forward/reverse authority,
+  scenario-dimension, complete-promise, independent-oracle, and hidden-wait
+  reconciliation.
 - Repeatable `--scope` paths keep lint/audit output and semantic reconciliation
   inside selected test components while still indexing the complete suite for
   cross-file evidence. Omit scope for a whole-suite audit.
@@ -227,6 +229,7 @@ pytest-blackbox-skill/
 ├── .codex-plugin/plugin.json
 ├── assets/
 ├── core/POLICY.md
+├── evals/
 ├── references/
 ├── scripts/
 ├── submission/
@@ -244,6 +247,15 @@ pytest-blackbox-skill/
 The shared policy lives outside `skills/` so it is loaded by the selected
 workflow without becoming a duplicate `pytest-blackbox:pytest-blackbox`
 command.
+
+Run dependency-free deterministic regression evaluations with:
+
+```bash
+python scripts/run_evals.py
+```
+
+The independent semantic forward-evaluation protocol and its deliberately
+incomplete project snapshot live in [evals/README.md](evals/README.md).
 
 ## Contributing
 

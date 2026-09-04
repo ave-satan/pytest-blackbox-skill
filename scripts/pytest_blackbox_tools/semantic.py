@@ -104,23 +104,90 @@ def semantic_findings(
             severity="MANUAL",
             code="SEM006",
             message=(
-                f"prove scenario completeness for the {scope_label}, not only operation "
-                "presence: derive "
-                "expected truth from authoritative requirements and inspect "
-                "application-owned source branches only for candidate gaps; map every "
-                "confirmed public outcome, state partition, compound ownership/"
-                "isolation dimension (including the same resource owned by another "
-                "principal whenever ownership affects selection/access), boundary, "
-                "terminal/no-op/stale handler outcome, "
-                "mixed batch partition, and direct artifact to a collected node; "
-                "cover runtime legacy-format compatibility only when an authoritative "
-                "requirement promises the preserved public behavior, never merely "
-                "because source contains a migration/conversion branch; "
-                "report undocumented source-only candidates instead of using current "
-                "implementation as the oracle; "
-                "policy decisions may scope only non-contract surfaces; exclude "
-                "concurrent execution when "
-                "test_concurrency is false"
+                f"map authoritative requirements forward for the {scope_label}: every "
+                "operation, distinct public scenario/outcome, boundary, and direct "
+                "artifact has a distinguishing collected node; registrations prove "
+                "operation existence only, source branches reveal candidates only, and "
+                "policy decisions may scope only non-contract surfaces and configured "
+                "concurrency"
+            ),
+        )
+    )
+    findings.append(
+        Finding(
+            path=semantic_path,
+            line=1,
+            severity="MANUAL",
+            code="SEM013",
+            message=(
+                f"reconcile every existing behavior test in the {scope_label} back to a "
+                "precise authoritative requirement; report counts for covered, partial, "
+                "missing, ambiguous, and unsourced, and do not claim completeness while "
+                "the last four are nonzero; treat removed/disabled behavior, obsolete "
+                "compatibility, documentation-only routes, accidental aliases, and other "
+                "source-only expectations as contract drift rather than preserved truth"
+            ),
+        )
+    )
+    findings.append(
+        Finding(
+            path=semantic_path,
+            line=1,
+            severity="MANUAL",
+            code="SEM014",
+            message=(
+                f"classify applicable scenario dimensions for the {scope_label}: actor/"
+                "owner/namespace isolation, lifecycle state, compound identity, time/"
+                "local-date/timezone/TTL, configuration, state captured before and "
+                "revalidated after external calls, async dispatch/execution/delivery "
+                "ownership, batches, authoritative repetition, and enabled concurrency; "
+                "counterfactually identify which collected case fails if each observable "
+                "source condition is deleted, inverted, moved across an external call, or "
+                "scoped to the wrong actor, without manufacturing a Cartesian product"
+            ),
+        )
+    )
+    findings.append(
+        Finding(
+            path=semantic_path,
+            line=1,
+            severity="MANUAL",
+            code="SEM015",
+            message=(
+                f"prove every covered row in the {scope_label} distinguishes all "
+                "independently breakable promises: natural public response/settlement, "
+                "exact created or changed artifacts, and every explicitly absent or "
+                "preserved effect; keep natural observations separate and never substitute "
+                "internal-call assertions or a manufactured aggregate"
+            ),
+        )
+    )
+    findings.append(
+        Finding(
+            path=semantic_path,
+            line=1,
+            severity="MANUAL",
+            code="SEM016",
+            message=(
+                f"trace inputs and expected values in the {scope_label} to independent "
+                "test-owned data or authoritative literals; production Settings, DTOs, "
+                "schemas, defaults, constants, codecs, registries, and private algorithms "
+                "may compose invocation but never calculate boundaries/oracles; verify a "
+                "production-only change cannot update actual and expected together"
+            ),
+        )
+    )
+    findings.append(
+        Finding(
+            path=semantic_path,
+            line=1,
+            severity="MANUAL",
+            code="SEM017",
+            message=(
+                f"inspect test-support library defaults and test configuration for the "
+                f"{scope_label}: apparently no-wait operations must not inherit positive "
+                "timeouts, retries, backoff, or quiet windows; set zero when supported or "
+                "the documented minimum otherwise and report unavoidable bounds"
             ),
         )
     )

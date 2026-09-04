@@ -1,0 +1,9 @@
+[tool.pytest-blackbox]
+config_version = 1
+layout = "preserve"
+prefer_test_classes = true
+test_concurrency = false
+infrastructure = "existing-services"
+compose_lifecycle = "disabled"
+external_services = "intercept"
+generators_backend = "faker"

@@ -6,6 +6,87 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+### Changed
+
+- Semantic reconciliation is now explicitly bidirectional. The transient
+  matrix maps authoritative requirements to collected cases and every existing
+  behavior test back to precise authority, with mandatory `covered`, `partial`,
+  `missing`, `ambiguous`, and `unsourced` counts.
+- Scenario completeness now includes explicit applicability decisions for
+  actor/owner isolation, lifecycle state, compound identity, local date/timezone/
+  TTL, configuration, external-call snapshot and post-call guards, async phase
+  ownership, batch partitions, authoritative repetition, and enabled
+  concurrency. A counterfactual pass asks which case distinguishes deletion,
+  inversion, wrong-actor scoping, or movement of each observable condition.
+- A covered scenario must distinguish every independently breakable public
+  promise, including exact created/changed artifacts and explicitly absent or
+  preserved effects. One asserted response no longer covers unverified negative
+  artifacts.
+- `write`, `develop`, and `repair` now perform scoped contract-drift
+  reconciliation so removed/disabled behavior, obsolete compatibility,
+  documentation-only routes, accidental aliases, and async ownership shifts do
+  not survive as source-derived contracts. `review` and `audit` apply the same
+  reverse-authority gate read-only.
+- `SEM013`–`SEM017` separate reverse authority mapping, scenario dimensions and
+  counterfactual analysis, complete promises, independent oracle encoding, and
+  hidden wait/retry defaults into individually reconcilable audit items.
+- `ORC001` rejects assertions and expected builders derived from production
+  `Settings`/configuration; `TIME002` rejects unconstrained expected-side
+  timestamp matchers; `WAIT003` rejects messaging `get(fail=False)` drains that
+  inherit a positive timeout instead of passing `timeout=0`.
+- The repository now includes dependency-free deterministic regression
+  evaluations plus an independent forward-evaluation project for the semantic
+  classes that static analysis cannot prove.
+
+### Existing-project actions
+
+#### PBB-MIG-0.10.0-01 — Reconcile tests back to current authority
+
+- **Condition:** an owning component contains behavior tests whose exact
+  requirement is unclear, removed, disabled, documentation-only, inferred from
+  source, or contradicted by the current product contract.
+- **Action:** build the bidirectional transient matrix from
+  `references/reconciliation.md`. Map every authoritative requirement forward
+  and every existing test backward, classify all rows as `covered`, `partial`,
+  `missing`, `ambiguous`, or `unsourced`, resolve product ambiguity, and remove
+  or rewrite unsupported expectations only within the authorized scope.
+- **Do not:** preserve behavior because production still contains a branch,
+  create a persistent per-operation registry, or broaden a focused migration
+  into a full-suite refactor.
+- **No-op when:** every behavior case in the selected component maps to current
+  authority and all authoritative rows are fully covered.
+
+#### PBB-MIG-0.10.0-02 — Decouple configuration-derived oracles
+
+- **Condition:** a test or expected-artifact builder reads production
+  `Settings`, DTOs, schemas, defaults, constants, codecs, registries, or private
+  algorithms to calculate input boundaries or expected truth.
+- **Action:** bind the explicit test-owned input/configuration override and its
+  independent expected value in parametrization or an immutable case context.
+  Keep production configuration only in fixture-owned composition. Assert a
+  public invariant rather than cloning a private selection/hash/ranking
+  algorithm when the algorithm itself is not contractual.
+- **Do not:** change only a variable name, copy a production default into a
+  second helper without authoritative evidence, or construct expected data
+  through production types.
+- **No-op when:** changing production configuration/algorithm alone cannot
+  update both actual and expected values together.
+
+#### PBB-MIG-0.10.0-03 — Remove hidden waits and bound timestamps
+
+- **Condition:** an expected-side timestamp matcher has no invocation lower and
+  upper bounds; a messaging drain uses `get(fail=False)` without explicit
+  `timeout=0`; or test configuration inherits avoidable positive timeout,
+  retry, backoff, or quiet-window defaults.
+- **Action:** capture real start/finish bounds around the tested invocation and
+  apply both to generated timestamps/TTL-derived values. Pass explicit zero for
+  no-wait protocol calls when supported, otherwise use the documented minimum
+  and report the unavoidable bound. Disable test-only retries/backoff.
+- **Do not:** freeze time, sleep, add polling, introduce arbitrary slack, or
+  treat a method name such as `drain` as proof of no-wait behavior.
+- **No-op when:** application-produced time values are bounded and every
+  protocol/library wait is explicitly disabled or minimized.
+
 ## [0.9.0] - 2026-09-01
 
 ### Changed

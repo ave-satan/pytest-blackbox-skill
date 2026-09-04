@@ -5,6 +5,7 @@
 - [Scope and invocation](#scope-and-invocation)
 - [Contract-first test-first workflow](#contract-first-test-first-workflow)
 - [Scenario matrix](#scenario-matrix)
+- [Semantic reconciliation](reconciliation.md)
 - [Idempotency contracts](#idempotency-contracts)
 - [WebSocket contracts](#websocket-contracts)
 - [Performance doubles](#performance-doubles)
@@ -39,7 +40,7 @@ When an API dispatches asynchronous work, its direct contract ends at the exact 
 
 Use this workflow when the user asks to implement or change application behavior, including an authorized application bug fix. It applies to the requested behavior—not to an unrelated full-suite expansion.
 
-1. Identify the public operation identity and authoritative requirement. Build a transient matrix containing the primary contract, relevant access/validation/errors/business/metrics categories, every distinct observable scenario, direct artifact, and explicit exclusions.
+1. Identify the public operation identity and authoritative requirement. Build the bidirectional transient matrix defined in [reconciliation.md](reconciliation.md), including natural positive and negative artifacts and explicit reconciliation status.
 2. Resolve material product ambiguity before encoding an oracle. Do not use the current branch condition, DTO default, framework output, or a speculative desirable property as the requirement.
 3. Write the complete scoped black-box test set and support graph without changing production behavior. Keep inputs and expectations independent and ensure every planned matrix row has a collected node.
 4. Run the focused selection and classify the red result. Record the failing nodes and why they prove missing/wrong behavior. Fixture, environment, syntax, import, and oracle failures are not acceptable red evidence when the public boundary already exists.
@@ -53,7 +54,7 @@ For a pure refactor, first demonstrate a green relevant baseline and preserve it
 
 ## Scenario matrix
 
-Build scenarios from observable contract partitions, not from a desire to execute every line. Authoritative requirements and independently owned public protocol definitions establish expected truth. Registered/reachable declarations and application-owned branches that change a response, emitted message, settlement, persisted state, cache/object artifact, or another direct observation reveal candidate partitions that coverage may have missed; they do not define the oracle. When such an observable branch lacks an authoritative contract, record a finding or request a product decision rather than silently preserving the current implementation.
+Build scenarios from observable contract partitions, not from a desire to execute every line. Follow the dimension, complete-promise, counterfactual, and reverse-traceability passes in [reconciliation.md](reconciliation.md). Authoritative requirements and independently owned public protocol definitions establish expected truth. Registered/reachable declarations and application-owned branches that change a response, emitted message, settlement, persisted state, cache/object artifact, or another direct observation reveal candidate partitions that coverage may have missed; they do not define the oracle. When such an observable branch lacks an authoritative contract, record a finding or request a product decision rather than silently preserving the current implementation.
 
 Include applicable partitions such as:
 
@@ -361,7 +362,7 @@ When a valid row would trigger unrelated expensive work, a performance double ma
 
 Inventory depth follows the task. A focused change inspects its relevant surface; a full coverage review discovers the complete registered/reachable surface—including mounted, hidden-from-schema, feature-gated, operational, job, scheduler, worker, and message-handler entries—before claiming completeness.
 
-Turn that inventory into a transient contract-evidence matrix before declaring the suite complete. For every discovered operation record its stable public identity, applicable generalized registry rule and depth, terminal test component, primary contract node, applicable categories, and application-owned observable outcome classes. Build outcome classes from public contracts plus implementation inspection (for example accepted, rejected, preserved, dispatched, registered, acknowledged, or dead-lettered), but assert only public responses/direct artifacts rather than internal branches. Every outcome maps to a test node or a documented scope decision. The matrix is audit evidence, not persistent micromanagement: never copy public operations into `pyproject.toml` or maintain a per-operation registry.
+Turn that inventory into the bidirectional transient contract-evidence matrix from [reconciliation.md](reconciliation.md) before declaring the suite complete. For every discovered operation record its stable public identity, applicable generalized registry rule and depth, terminal test component, primary contract node, applicable categories, and application-owned observable outcome classes. Build outcome classes from public contracts plus implementation inspection (for example accepted, rejected, preserved, dispatched, registered, acknowledged, or dead-lettered), but assert only public responses/direct artifacts rather than internal branches. Every authoritative outcome maps to a test node; only non-contract surfaces may map to a documented generalized scope decision. The matrix is audit evidence, not persistent micromanagement: never copy public operations into `pyproject.toml` or maintain a per-operation registry.
 
 Operation presence and a `test_contract` node prove only census completeness. Scenario completeness is a separate semantic pass: derive expected outcomes from authoritative functional requirements, then inspect application-owned source branches and partitions for missing candidates. Enumerate every confirmed distinct public outcome, meaningful state partition, isolation dimension, contractual boundary, and direct artifact, and map every public-contract item to an actually collected case. An observable source-only candidate with no authoritative meaning becomes a finding or product question, never an implementation-derived oracle. Generalized policy decisions may scope only non-contract surfaces and the recorded concurrency boundary; they never exempt public or registered contracts. Collapse implementation branches only when they are observationally identical at the public boundary; never omit a promised outcome merely because another case executes nearby code.
 

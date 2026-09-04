@@ -150,6 +150,82 @@ def function_args(node: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
     }
 
 
+def function_arguments(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> tuple[ast.arg, ...]:
+    return (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs)
+
+
+def assigned_names(node: ast.Assign | ast.AnnAssign) -> set[str]:
+    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+    return {
+        candidate.id
+        for target in targets
+        for candidate in ast.walk(target)
+        if isinstance(candidate, ast.Name) and isinstance(candidate.ctx, ast.Store)
+    }
+
+
+def uses_any_name(node: ast.AST, names: set[str]) -> bool:
+    return any(
+        isinstance(candidate, ast.Name)
+        and isinstance(candidate.ctx, ast.Load)
+        and candidate.id in names
+        for candidate in ast.walk(node)
+    )
+
+
+def production_settings_arguments(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    aliases: dict[str, str],
+    tests_package: str,
+) -> set[str]:
+    result: set[str] = set()
+    for argument in function_arguments(node):
+        if argument.annotation is None:
+            continue
+        annotation = resolved_dotted_name(argument.annotation, aliases) or ""
+        leaf = annotation.rsplit(".", 1)[-1].lower()
+        if annotation.startswith(f"{tests_package}."):
+            continue
+        if leaf == "settings" or leaf.endswith(("settings", "config", "configuration")):
+            result.add(argument.arg)
+    return result
+
+
+def tainted_names(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    initial: set[str],
+) -> set[str]:
+    tainted = set(initial)
+    assignments = [
+        candidate
+        for candidate in ast.walk(node)
+        if isinstance(candidate, (ast.Assign, ast.AnnAssign))
+        and candidate.value is not None
+    ]
+    changed = True
+    while changed:
+        changed = False
+        for assignment in assignments:
+            if any(
+                isinstance(candidate, ast.Await)
+                for candidate in ast.walk(assignment.value)
+            ):
+                continue
+            if not uses_any_name(assignment.value, tainted):
+                continue
+            new_names = {
+                name
+                for name in assigned_names(assignment) - tainted
+                if not name.startswith("actual")
+            }
+            if new_names:
+                tainted.update(new_names)
+                changed = True
+    return tainted
+
+
 def source_test_owner(path: Path, tests_dir: Path) -> tuple[str, ...]:
     relative = path.relative_to(tests_dir).with_suffix("").parts
     return (tests_dir.name, *relative[:-1])
@@ -804,6 +880,14 @@ class Audit:
         self.audit_public_client_fields(path, tree)
         self.audit_cross_component_private_access(path, tree)
         self.audit_matcher_bounds(path, tree)
+        self.audit_temporal_matchers(path, tree, aliases)
+        self.audit_production_settings_oracles(
+            path,
+            functions,
+            fixtures,
+            tests,
+            aliases,
+        )
 
         for fixture in fixtures:
             self.fixtures.append((fixture.name, path, fixture.lineno))
@@ -1182,6 +1266,116 @@ class Audit:
                 )
                 return
 
+    def audit_temporal_matchers(
+        self,
+        path: Path,
+        tree: ast.Module,
+        aliases: dict[str, str],
+    ) -> None:
+        lower_bounds = {"after", "gt", "gte", "min", "minimum", "start"}
+        upper_bounds = {"before", "end", "lt", "lte", "max", "maximum"}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            name = resolved_dotted_name(node.func, aliases) or ""
+            leaf = name.rsplit(".", 1)[-1].lower()
+            if leaf not in {"anydatetime", "anyinstant", "anytimestamp"}:
+                continue
+            keywords = {keyword.arg for keyword in node.keywords if keyword.arg}
+            if keywords & lower_bounds and keywords & upper_bounds:
+                continue
+            self.add(
+                "ERROR",
+                "TIME002",
+                path,
+                node.lineno,
+                "expected-side timestamp matcher needs explicit lower and upper "
+                "invocation bounds; a type-only timestamp does not protect when the "
+                "application produced it",
+            )
+
+    def audit_production_settings_oracles(
+        self,
+        path: Path,
+        functions: Sequence[ast.FunctionDef | ast.AsyncFunctionDef],
+        fixtures: Sequence[ast.FunctionDef | ast.AsyncFunctionDef],
+        tests: Sequence[TestNode],
+        aliases: dict[str, str],
+    ) -> None:
+        test_ids = {id(test.node) for test in tests}
+        fixture_ids = {id(fixture) for fixture in fixtures}
+        all_functions = list(functions)
+        known_ids = {id(function) for function in all_functions}
+        for function in (*fixtures, *(test.node for test in tests)):
+            if id(function) not in known_ids:
+                all_functions.append(function)
+                known_ids.add(id(function))
+        for function in all_functions:
+            settings_names = production_settings_arguments(
+                function,
+                aliases,
+                self.tests_dir.name,
+            )
+            if not settings_names:
+                continue
+            tainted = tainted_names(function, settings_names)
+            if id(function) in test_ids:
+                leaking_assert = next(
+                    (
+                        candidate
+                        for candidate in ast.walk(function)
+                        if isinstance(candidate, ast.Assert)
+                        and uses_any_name(candidate.test, tainted)
+                    ),
+                    None,
+                )
+                if leaking_assert is not None:
+                    self.add(
+                        "ERROR",
+                        "ORC001",
+                        path,
+                        leaking_assert.lineno,
+                        "expected assertion is derived from production Settings/config; "
+                        "bind the configured input and independent expected truth in "
+                        "test-owned parametrization/context",
+                    )
+                continue
+            if id(function) in fixture_ids or function.name.startswith("_"):
+                continue
+            oracle_module = path.name in {
+                "events.py",
+                "frames.py",
+                "responses.py",
+                "urls.py",
+            }
+            oracle_callable = function.name.startswith("expected_") or (
+                oracle_module
+                and function.name.endswith(
+                    ("_body", "_event", "_frame", "_headers", "_response")
+                )
+            )
+            if not (oracle_module or oracle_callable):
+                continue
+            leaking_return = next(
+                (
+                    candidate
+                    for candidate in ast.walk(function)
+                    if isinstance(candidate, (ast.Return, ast.Yield))
+                    and candidate.value is not None
+                    and uses_any_name(candidate.value, tainted)
+                ),
+                None,
+            )
+            if leaking_return is not None:
+                self.add(
+                    "ERROR",
+                    "ORC001",
+                    path,
+                    leaking_return.lineno,
+                    "expected builder is derived from production Settings/config; "
+                    "construct its oracle from independent test-owned values",
+                )
+
     def audit_source_savepoints(self) -> None:
         for path in sorted(self.root.rglob("*.py")):
             if path.is_relative_to(self.tests_dir) or any(
@@ -1474,6 +1668,37 @@ class Audit:
                     node.lineno,
                     "messaging must use deterministic completion and no-wait collection",
                 )
+            if leaf == "get" and "messaging" in path.parts:
+                fail = next(
+                    (
+                        keyword.value
+                        for keyword in node.keywords
+                        if keyword.arg == "fail"
+                    ),
+                    None,
+                )
+                timeout = next(
+                    (
+                        keyword.value
+                        for keyword in node.keywords
+                        if keyword.arg == "timeout"
+                    ),
+                    None,
+                )
+                no_wait = isinstance(timeout, ast.Constant) and timeout.value == 0
+                if (
+                    isinstance(fail, ast.Constant)
+                    and fail.value is False
+                    and not no_wait
+                ):
+                    self.add(
+                        "ERROR",
+                        "WAIT003",
+                        path,
+                        node.lineno,
+                        "messaging get(fail=False) still inherits a positive library "
+                        "timeout; pass timeout=0 for a real no-wait drain",
+                    )
             if name in {
                 "patch",
                 "mock.patch",
