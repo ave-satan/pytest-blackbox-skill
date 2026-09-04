@@ -1,0 +1,9 @@
+interface:
+  display_name: "Pytest Blackbox: Lint"
+  short_description: "Run deterministic pytest policy checks"
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+  brand_color: "#5B21FF"
+  default_prompt: "Use $pytest-blackbox:lint to run deterministic policy diagnostics for this pytest suite."
+policy:
+  allow_implicit_invocation: true

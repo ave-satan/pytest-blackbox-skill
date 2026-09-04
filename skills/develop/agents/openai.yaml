@@ -1,6 +1,9 @@
 interface:
   display_name: "Pytest Blackbox: Develop"
   short_description: "Develop Python behavior test-first"
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+  brand_color: "#5B21FF"
   default_prompt: "Use $pytest-blackbox:develop to implement this Python application behavior through a contract-first red-green workflow."
 policy:
   allow_implicit_invocation: true

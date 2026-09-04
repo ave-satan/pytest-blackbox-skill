@@ -1,6 +1,9 @@
 interface:
   display_name: "Pytest Blackbox: Repair"
   short_description: "Repair black-box pytest test suites"
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+  brand_color: "#5B21FF"
   default_prompt: "Use $pytest-blackbox:repair to diagnose and repair these failing contract tests."
 policy:
   allow_implicit_invocation: true

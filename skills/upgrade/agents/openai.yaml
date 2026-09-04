@@ -1,0 +1,9 @@
+interface:
+  display_name: "Pytest Blackbox: Upgrade"
+  short_description: "Apply release migrations to configured projects"
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+  brand_color: "#5B21FF"
+  default_prompt: "Use $pytest-blackbox:upgrade to apply relevant release migrations to this configured project."
+policy:
+  allow_implicit_invocation: true

@@ -1,6 +1,9 @@
 interface:
   display_name: "Pytest Blackbox: Audit"
   short_description: "Audit complete pytest contract coverage"
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+  brand_color: "#5B21FF"
   default_prompt: "Use $pytest-blackbox:audit to audit this complete contract-test suite without changing files."
 policy:
   allow_implicit_invocation: true
