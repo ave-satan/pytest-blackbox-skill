@@ -6,6 +6,8 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-04
+
 ### Changed
 
 - Every workflow skill now has consistent `Pytest Blackbox: <Action>` UI
