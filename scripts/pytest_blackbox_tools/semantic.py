@@ -89,7 +89,8 @@ def semantic_findings(
             message=(
                 f"reconcile a transient contract-evidence matrix for the {scope_label}: "
                 "operation census from final framework registrations/actions, applicable policy "
-                "depth, primary node/categories, and every application-owned observable "
+                "depth and conflicts with accepted project exclusions, primary "
+                "node/categories, and every application-owned observable "
                 "outcome class within the active policy boundary; after the final case "
                 "set is known, reconcile names bottom-up so each category covers all of "
                 "its cases and each terminal component still maps one-to-one to its "
@@ -125,7 +126,8 @@ def semantic_findings(
                 "missing, ambiguous, and unsourced, and do not claim completeness while "
                 "the last four are nonzero; treat removed/disabled behavior, obsolete "
                 "compatibility, documentation-only routes, accidental aliases, and other "
-                "source-only expectations as contract drift rather than preserved truth"
+                "source-only expectations as contract drift rather than preserved truth; "
+                "an accepted risk permits an adverse result but does not require it"
             ),
         )
     )
@@ -157,8 +159,10 @@ def semantic_findings(
                 f"prove every covered row in the {scope_label} distinguishes all "
                 "independently breakable promises: natural public response/settlement, "
                 "exact created or changed artifacts, and every explicitly absent or "
-                "preserved effect; keep natural observations separate and never substitute "
-                "internal-call assertions or a manufactured aggregate"
+                "preserved effect; for pagination inspect the complete relevant "
+                "collection across a small supported page boundary, not a count "
+                "and last item; keep natural observations separate and never "
+                "substitute internal-call assertions or a manufactured aggregate"
             ),
         )
     )
@@ -182,12 +186,31 @@ def semantic_findings(
             path=semantic_path,
             line=1,
             severity="MANUAL",
+            code="SEM018",
+            message=(
+                f"verify collected tests in the {scope_label} invoke supported "
+                "public application/job/worker/integration boundaries rather than "
+                "internal coordinators, request builders, validators, or migration "
+                "lifecycle APIs; also inspect fixtures/environment helpers for "
+                "seeded old-schema rows or before/after migration data assertions "
+                "hidden in bootstrap. Production types may annotate actual values "
+                "or compose the public boundary but cannot become the tested stimulus"
+            ),
+        )
+    )
+    findings.append(
+        Finding(
+            path=semantic_path,
+            line=1,
+            severity="MANUAL",
             code="SEM017",
             message=(
                 f"inspect test-support library defaults and test configuration for the "
-                f"{scope_label}: apparently no-wait operations must not inherit positive "
-                "timeouts, retries, backoff, or quiet windows; set zero when supported or "
-                "the documented minimum otherwise and report unavoidable bounds"
+                f"{scope_label}: baseline application-configurable retry attempts, "
+                "delay, backoff, and jitter must be disabled; retry-contract cases "
+                "opt in explicitly, while apparently no-wait operations must not "
+                "inherit positive timeouts or quiet windows; set zero when supported "
+                "or the documented minimum otherwise and report unavoidable bounds"
             ),
         )
     )
@@ -249,7 +272,8 @@ def semantic_findings(
                 code="SEM002",
                 message=(
                     "focused selectors still require a complete matching-surface "
-                    "census: " + ", ".join(focused)
+                    "census and conflict review when they intersect mandatory "
+                    "public/registered operations: " + ", ".join(focused)
                 ),
             )
         )
@@ -304,7 +328,9 @@ def semantic_findings(
                     "only when shared worker runtime behavior belongs to the selected "
                     "coverage boundary, reconcile dispatch/envelope/unknown-message "
                     "behavior; when settlement is selected, require a positive "
-                    "acknowledgement/non-redelivery artifact"
+                    "acknowledgement/non-redelivery artifact; classify a supported "
+                    "observational runtime probe separately from a performance "
+                    "double and never treat its handler-domain result as handler coverage"
                 ),
             )
         )

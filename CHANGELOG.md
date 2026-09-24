@@ -6,6 +6,60 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-24
+
+### Changed
+
+- Contract reconciliation now stops completeness claims on unresolved conflicts
+  between accepted project exclusions and mandatory public/registered coverage.
+  `covered` requires a distinguishing assertion or artifact read for every
+  independently breakable promise; merely tolerated adverse outcomes do not
+  become required oracles.
+- Paginated/bulk tests prefer the smallest supported page or batch size and a
+  complete relevant artifact comparison. A reported count plus the last item
+  no longer proves earlier pages were processed; fixed limits never justify
+  patching application code or replacing internal storage.
+- Selected shared-runtime tests may use a narrow observational probe through a
+  supported composition seam. It is not a performance double and cannot
+  substitute for a handler's domain-contract tests.
+- `write`, `develop`, `repair`, and `audit` explicitly reconcile applicable
+  semantic review items before claiming scoped completeness.
+
+### Added
+
+- `MIG001` rejects collected tests that directly invoke Alembic or
+  test-environment migration lifecycle APIs and explicitly directs removal of
+  the standalone test. Fixture-owned bootstrap/reversal remains valid, but
+  neither tests nor fixtures may seed old-revision data or assert its transfer,
+  transformation, or preservation across migration revisions.
+- `SEM018` prompts a review of direct internal invocations in collected tests.
+
+### Existing-project action
+
+#### PBB-MIG-0.11.0-01 — Reconcile affected contract coverage
+
+- **Condition:** an affected component has incomplete direct-artifact or
+  paginated-result assertions, or its accepted exclusion may cover a mandatory
+  public/registered operation.
+- **Action:** run scoped `audit_suite.py`, use the smallest supported page/batch
+  setup with complete relevant artifact comparison, and resolve a mandatory
+  scope conflict with the project owner before changing affected tests.
+- **Do not:** rewrite unrelated components, patch application pagination
+  internals solely for a test, or silently override an accepted exclusion.
+- **No-op when:** all covered rows have distinguishing direct-artifact evidence
+  and no applicable mandatory-scope conflict remains.
+
+#### PBB-MIG-0.11.0-02 — Remove migration data-transfer checks
+
+- **Condition:** collected tests or fixture/environment bootstrap seed rows on
+  an old schema or compare/preserve/transform data across migration revisions.
+- **Action:** remove standalone tests flagged by `MIG001` and hidden
+  fixture/environment data-transfer assertions. Retain ordinary in-process
+  upgrade and mandatory reversal, with visible failures.
+- **Do not:** move the assertions into setup or replace them with another
+  before/after migration-data check.
+- **No-op when:** no such checks remain and the migration lifecycle still runs.
+
 ## [0.10.1] - 2026-09-04
 
 ### Changed
@@ -923,7 +977,10 @@ No project-file migration was required.
 - The shared black-box pytest policy, project onboarding, fallback discovery,
   and deterministic auditor.
 
-[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.10.1...v0.11.0
+[0.10.1]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.6.0...v0.7.0

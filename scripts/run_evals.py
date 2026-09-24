@@ -16,10 +16,20 @@ def main() -> int:
         include_semantic=False,
     )
     actual_codes = {finding.code for finding in violated.diagnostics}
-    expected_codes = {"ORC001", "TIME002", "WAIT003"}
+    expected_codes = {"MIG001", "ORC001", "TIME002", "WAIT003"}
     missing = expected_codes - actual_codes
     if missing:
         print("missing expected diagnostics: " + ", ".join(sorted(missing)))
+        return 1
+    migration_findings = (
+        finding for finding in violated.diagnostics if finding.code == "MIG001"
+    )
+    if not any(
+        "remove this standalone" in finding.message
+        and "without moving data-preservation" in finding.message
+        for finding in migration_findings
+    ):
+        print("MIG001 must direct removal without moving assertions into fixtures")
         return 1
 
     clean = run_checks(

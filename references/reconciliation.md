@@ -13,10 +13,29 @@ scenario should do. Application source reveals candidate states, branches, and
 artifacts; it never promotes its current behavior to expected truth. Existing
 tests are evidence to reconcile, not requirements.
 
+Distinguish a required outcome from a tolerated failure or risk. A requirement
+that permits an adverse outcome does not require the test to reproduce it:
+counterfactually, a safer implementation must not fail a contract test solely
+because that adverse outcome disappeared. Test the guaranteed boundary and
+classify any source-only behavior as unresolved rather than turning it into an
+oracle.
+
 When no authoritative source resolves an observable source branch, mark it
 `ambiguous` and request a product decision. When an existing test has no
 authoritative contract, mark it `unsourced`; do not preserve it merely because
 production still contains the exercised branch.
+
+## Scope conflict gate
+
+Before assigning coverage status, compare the selected operation census with
+requirements, accepted project exclusions, and `[tool.pytest-blackbox.coverage]`.
+The registry may narrow only non-contract surfaces and the explicit concurrency
+choice. If a requirement or project decision excludes an operation that this
+policy classifies as a mandatory public/registered contract, report the exact
+conflict and ask for an authoritative scope decision. Do not silently count the
+exclusion as coverage, override the project decision, or weaken the mandatory
+rule on your own. Continue independent in-scope work, but withhold a complete
+claim for the disputed surface until the conflict is resolved.
 
 ## Transient evidence matrix
 
@@ -34,6 +53,14 @@ Each row records:
 - explicitly promised absent or unchanged artifacts;
 - owning collected test node;
 - reconciliation status.
+
+The row's `covered` status is a claim about the whole promise, not a shorthand
+for a green node. For each independently breakable observation, identify the
+assertion or direct artifact read that would fail if only that observation were
+wrong. A test that merely executes the branch, checks a reported count, or
+checks one representative item is `partial` when other promised items can still
+be wrong. Keep the proof concise and transient; do not add a persistent
+per-operation registry or one matrix row per implementation branch.
 
 Use exactly these statuses:
 
@@ -108,6 +135,19 @@ natural observations separate when they are naturally separate, but do not
 mark the matrix row `covered` merely because one of several promised outcomes
 is asserted.
 
+For paginated or bulk work, make the fixture span at least two pages/batches
+and compare the complete relevant artifact collection after the operation,
+including cardinality and any contractual ordering or multiplicity. A returned
+count and the last item do not prove that earlier pages were processed. Prefer
+a small page/batch limit supplied through supported application configuration
+or a protocol-compatible test environment, plus enough items to cross that
+limit; arrange and inspect them through bulk-capable repositories. Do not
+patch the application, replace the internal dependency, or change a public
+contract merely to shrink the page. If the limit is fixed and no legitimate
+seam exists, use the smallest real cross-page setup, report its cost, or ask
+separately about a general production configuration seam. Do not claim a
+single-page test proves pagination.
+
 ## Independent-encoding pass
 
 Trace every input and expected value in a covered row to test-owned data or an
@@ -127,6 +167,11 @@ predict one implementation-specific result.
 Counterfactually ask whether changing only the production constant/default/
 codec/algorithm would also change the expected value. If so, the test has a
 shared oracle and is not `covered`.
+
+Also ask whether removing an undesirable but explicitly tolerated outcome
+would break the test. If it would, the test asserts more than the contract
+promises. Keep that case `unsourced` unless an independent accepted requirement
+turns the tolerated possibility into a required result.
 
 ## Counterfactual source pass
 
@@ -170,6 +215,13 @@ resolved source-only candidates, excluded non-contract surfaces, collected
 node evidence, executed checks, and remaining blockers. A green suite,
 operation-directory census, primary `test_contract`, or clean deterministic
 lint is evidence but never sufficient for semantic completeness.
+
+For each covered operation, confirm that the final collected cases protect its
+applicable dimensions and complete positive/negative artifacts. State any
+scope conflict separately from the five matrix counts; a policy disagreement
+is not a green or excluded test case. If semantic review items remain
+unreconciled, report them as remaining review work instead of treating a zero
+diagnostic exit code as a coverage result.
 
 Also inspect the real defaults of protocol/library calls used by test support.
 An API named `get`, `drain`, or `no_wait` is not deterministic evidence if it

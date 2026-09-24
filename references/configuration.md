@@ -79,6 +79,16 @@ When the key is absent, dependency management is inactive: do not modify depende
 
 Public product HTTP/JSON-RPC/WebSocket operations and registered jobs, schedulers, and incoming-message handlers are always contract-bearing and always covered. Never add them to the registry and never request permission to omit them. A worker's registered handlers are covered this way; generic dispatch/acknowledgement/requeue runtime behavior is a separate non-contract surface unless intentionally selected. Broker topology and consumer/handler registration are not coverage surfaces at all: the mandatory session fixture runs the real production bootstrap and they never receive registry entries.
 
+After final operation discovery, compare each applicable registry selector and
+accepted project-level exclusion with that mandatory boundary. Discovery is
+read-only and need not import the application to guess this match. If an
+accepted exclusion appears to cover a public/registered functional operation,
+show the exact project decision, operation identities, and policy conflict;
+ask for an authoritative scope decision before changing affected tests or
+claiming completeness. Do not silently reinterpret the selector, ignore the
+project decision, or record a per-operation exception. Independent surfaces
+may proceed while this decision is pending.
+
 Documentation-only endpoints, generated OpenAPI/Swagger/schema output, and documentation UIs are excluded without a registry entry: they accompany functional contracts but do not create them. Do not snapshot or test them through this suite. An endpoint that performs product behavior is not documentation-only merely because it is described in OpenAPI.
 
 The registry contains decisions only for generalized classes of non-contract or ambiguous surfaces. The entries below are illustrative examples, not defaults to copy into every project:

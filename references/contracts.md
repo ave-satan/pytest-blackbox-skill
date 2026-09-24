@@ -72,6 +72,18 @@ For a compound ownership key such as `(user_id, media_id)`, positive coverage fo
 
 A branch that changes no public observation need not receive a test. A defensive branch reachable only through impossible/corrupt internal state is not promoted to a contract unless requirements explicitly promise tolerance for that state. Conversely, do not collapse distinct observable handler outcomes merely because they share an HTTP status, acknowledgement, or generic error envelope: compare their direct state/message/object artifacts. For batch outputs, preserve exact cardinality and duplicate multiplicity; `set(...)` or a set comprehension is not evidence when duplicate output is a defect.
 
+For a pagination or chunking guarantee, choose the smallest supported
+page/batch size and the fewest items that cross at least one boundary. A
+production-supported setting or protocol-compatible test service may supply
+that limit; the test must still exercise the real application-owned paging
+logic (for example, a page size of five with six distinct items). Prefer bulk
+arrange and a bulk read of every expected artifact, then
+compare the complete result, preserving order/multiplicity when promised. Do
+not infer complete processing from a response counter and one item on the last
+page. If the limit is fixed and a small-page seam does not exist, do not patch
+the application or mock the internal store: use the minimal real boundary-
+crossing setup or report the cost and request a general seam separately.
+
 ## Idempotency contracts
 
 Idempotency is an explicit repetition contract, never a default quality assumption. Test it only when an authoritative product or wire contract names the operation identity and promises a repeated-call or duplicate-delivery outcome. Do not infer it from an implementation guard, unique constraint, deterministic task ID, retry-capable dependency, or a test name.
@@ -155,6 +167,21 @@ Use one only when all conditions hold:
 6. Fixture lifecycle isolates and resets the double for every case.
 
 Prefer a small typed fake/no-op to a generic mock object. Use the double when it materially improves suite time; it is not mandatory for cheap work. External outbound systems remain a separate boundary represented by a domain Service and a network interceptor/mock server.
+
+An observational runtime probe is a different tool, not a performance double.
+When selected shared worker/runtime behavior (for example FIFO, concurrency,
+or settlement) has no sufficient natural public artifact, a test-owned typed
+collaborator may be injected through a supported production composition seam
+to signal entry/completion and record only those runtime-visible events. The
+probe must not decide the scheduling/settlement outcome, replace the handler
+whose domain behavior is under test, call private runtime APIs, or assert the
+probe's own domain result as proof of handler correctness. Trace the observed
+ordering/state to an authoritative runtime contract and cover every handler
+contract separately through its real path. Keep the probe private to the
+selected runtime component, reset per test, and use deterministic signaling
+without sleeps or timeouts. If the required behavior still cannot be observed
+without changing the implementation's decision, report an observability
+blocker instead of calling the probe a performance optimization.
 
 ## Test shape and assertions
 

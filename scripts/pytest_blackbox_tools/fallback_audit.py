@@ -873,6 +873,8 @@ class Audit:
                 "production bootstrap from fixture-owned environment setup",
             )
 
+        self.audit_migration_tests(path, tests, tree)
+
         self.audit_imports(path, tree)
         self.audit_calls(path, tree, aliases)
         self.audit_conftest(path, tree, fixtures)
@@ -990,6 +992,43 @@ class Audit:
                     1,
                     f"active standard layout requires test_ directory {directory!r}",
                 )
+
+    def audit_migration_tests(
+        self,
+        path: Path,
+        tests: Sequence[TestNode],
+        tree: ast.Module,
+    ) -> None:
+        call_names = resolved_call_names(tree)
+        for test in tests:
+            for node in ast.walk(test.node):
+                if not isinstance(node, ast.Call):
+                    continue
+                name = call_names.get(id(node), "")
+                if name in {"alembic.command.upgrade", "alembic.command.downgrade"} or (
+                    ".environment.migrations." in name
+                    and name.rsplit(".", 1)[-1]
+                    in {
+                        "apply_migrations",
+                        "downgrade_database",
+                        "downgrade_database_to",
+                        "run_migrations",
+                        "upgrade_database",
+                        "upgrade_database_to",
+                    }
+                ):
+                    self.add(
+                        "ERROR",
+                        "MIG001",
+                        path,
+                        node.lineno,
+                        "remove this standalone schema-migration test; keep only "
+                        "the ordinary upgrade/reversal lifecycle in fixture-owned "
+                        "setup, without moving data-preservation or before/after "
+                        "assertions into fixtures. Runtime compatibility, when "
+                        "promised, is a separate public-boundary contract",
+                    )
+                    break
 
     def audit_test_semantics(
         self,
