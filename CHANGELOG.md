@@ -6,6 +6,20 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-09-27
+
+### Changed
+
+- Internal operator-facing SSR views/forms can use a confirmed generalized
+  `focused` coverage decision without conflicting with mandatory product API
+  coverage. The full matching surface is still inventoried: selected business
+  workflows receive complete action/outcome tests, while unselected workflows
+  are reported explicitly as outside the suite boundary. Authentication or an
+  `/admin` mount alone never makes a product API optional.
+- Scope-conflict and `SEM002` guidance now distinguish a valid SSR choice from
+  a real exclusion of a mandatory product API, registered background operation,
+  or selected SSR workflow. Existing project choices need no config rewrite.
+
 ## [0.11.0] - 2026-09-24
 
 ### Changed
@@ -977,7 +991,8 @@ No project-file migration was required.
 - The shared black-box pytest policy, project onboarding, fallback discovery,
   and deterministic auditor.
 
-[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.11.1...HEAD
+[0.11.1]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.9.0...v0.10.0

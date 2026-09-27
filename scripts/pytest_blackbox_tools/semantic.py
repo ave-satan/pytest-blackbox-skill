@@ -106,11 +106,12 @@ def semantic_findings(
             code="SEM006",
             message=(
                 f"map authoritative requirements forward for the {scope_label}: every "
-                "operation, distinct public scenario/outcome, boundary, and direct "
-                "artifact has a distinguishing collected node; registrations prove "
-                "operation existence only, source branches reveal candidates only, and "
-                "policy decisions may scope only non-contract surfaces and configured "
-                "concurrency"
+                "in-scope operation, distinct public scenario/outcome, boundary, and "
+                "direct artifact has a distinguishing collected node; registrations "
+                "prove operation existence only, source branches reveal candidates "
+                "only, and policy may scope non-contract surfaces, internal operator "
+                "SSR, and configured concurrency without exempting mandatory product "
+                "APIs or registered background operations"
             ),
         )
     )
@@ -272,8 +273,11 @@ def semantic_findings(
                 code="SEM002",
                 message=(
                     "focused selectors still require a complete matching-surface "
-                    "census and conflict review when they intersect mandatory "
-                    "public/registered operations: " + ", ".join(focused)
+                    "census and their agreed selection/depth; for internal operator "
+                    "SSR, fully test selected workflows and report unselected ones "
+                    "as out of scope. Conflict only when an exclusion reaches a "
+                    "mandatory product API, registered background operation, or "
+                    "selected workflow: " + ", ".join(focused)
                 ),
             )
         )

@@ -77,21 +77,36 @@ When the key is absent, dependency management is inactive: do not modify depende
 
 ## Coverage registry
 
-Public product HTTP/JSON-RPC/WebSocket operations and registered jobs, schedulers, and incoming-message handlers are always contract-bearing and always covered. Never add them to the registry and never request permission to omit them. A worker's registered handlers are covered this way; generic dispatch/acknowledgement/requeue runtime behavior is a separate non-contract surface unless intentionally selected. Broker topology and consumer/handler registration are not coverage surfaces at all: the mandatory session fixture runs the real production bootstrap and they never receive registry entries.
+Public product HTTP/JSON-RPC/WebSocket operations and registered jobs, schedulers, and incoming-message handlers are always contract-bearing and always covered. Never add them to the registry and never request permission to omit them. Authentication, an `/admin` prefix, or framework generation does not by itself make a machine-consumable product API optional. A worker's registered handlers are covered this way; generic dispatch/acknowledgement/requeue runtime behavior is a separate non-contract surface unless intentionally selected. Broker topology and consumer/handler registration are not coverage surfaces at all: the mandatory session fixture runs the real production bootstrap and they never receive registry entries.
+
+Internal operator-facing server-rendered views and forms are a narrow
+policy-scopable exception, even when their framework synthesizes functional
+GET/POST actions. A confirmed generalized SSR selector may use `standard` for
+all matching workflows, `focused` for named business workflows, or `exclude`
+for the class. For `focused`, name selected capabilities in the rationale, not
+route/method identifiers: inventory all matching actions, test every
+applicable action and promised outcome in each selected workflow, and report
+unselected workflows as outside the agreed suite boundary rather than
+`missing` or `covered`. An SSR choice cannot scope a separate JSON/JSON-RPC/
+WebSocket product API or a registered background operation. An explicit task
+to test or change an unselected SSR workflow brings that workflow into the
+task boundary; reconcile it before writing tests or changing behavior.
 
 After final operation discovery, compare each applicable registry selector and
-accepted project-level exclusion with that mandatory boundary. Discovery is
-read-only and need not import the application to guess this match. If an
-accepted exclusion appears to cover a public/registered functional operation,
-show the exact project decision, operation identities, and policy conflict;
-ask for an authoritative scope decision before changing affected tests or
-claiming completeness. Do not silently reinterpret the selector, ignore the
-project decision, or record a per-operation exception. Independent surfaces
-may proceed while this decision is pending.
+accepted project-level exclusion with the mandatory boundary and the selected
+SSR workflow boundary. Discovery is read-only and need not import the
+application to guess this match. A valid internal-SSR `focused`/`exclude`
+choice is not a conflict merely because the route is registered or functional.
+If an exclusion also covers a mandatory product API, registered background
+operation, or selected SSR workflow, show the exact project decision and
+operation identities and ask for an authoritative scope decision before
+changing affected tests or claiming completeness. Do not silently reinterpret
+the selector, ignore the project decision, or record a per-operation exception.
+Independent surfaces may proceed while this decision is pending.
 
 Documentation-only endpoints, generated OpenAPI/Swagger/schema output, and documentation UIs are excluded without a registry entry: they accompany functional contracts but do not create them. Do not snapshot or test them through this suite. An endpoint that performs product behavior is not documentation-only merely because it is described in OpenAPI.
 
-The registry contains decisions only for generalized classes of non-contract or ambiguous surfaces. The entries below are illustrative examples, not defaults to copy into every project:
+The registry contains decisions only for generalized classes of non-contract or ambiguous surfaces and the internal operator-SSR exception. The entries below are illustrative examples, not defaults to copy into every project:
 
 ```toml
 [[tool.pytest-blackbox.coverage]]
@@ -112,7 +127,7 @@ rationale = "No separately selected application-owned runtime contract"
 
 Allowed decisions are `exclude`, `focused`, and `standard`. A selector describes a surface class, namespace, visibility class, or operational role. Do not record HTTP method/path pairs, JSON-RPC method names, individual job names, or handler identifiers; that becomes per-operation micromanagement.
 
-When discovery finds a non-contract operation:
+When discovery finds a policy-scopable surface:
 
 1. Apply an existing generalized registry rule when it clearly matches.
 2. If no rule matches, ask once about the new surface class and proposed depth.

@@ -360,7 +360,7 @@ def discover(root: Path) -> dict[str, Any]:
         "manual_confirmation": [
             "nearest pyproject ownership when nested_pyprojects contains another candidate",
             "infrastructure provider availability and protocol compatibility",
-            "generalized non-contract coverage registry",
+            "generalized policy-scopable coverage registry, including operator SSR",
             (
                 "whether observed Testcontainers usage provisions internal services, "
                 "external mock servers, both, or neither"

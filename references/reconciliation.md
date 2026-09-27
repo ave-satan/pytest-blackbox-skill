@@ -27,15 +27,19 @@ production still contains the exercised branch.
 
 ## Scope conflict gate
 
-Before assigning coverage status, compare the selected operation census with
+Before assigning coverage status, compare the operation census with
 requirements, accepted project exclusions, and `[tool.pytest-blackbox.coverage]`.
-The registry may narrow only non-contract surfaces and the explicit concurrency
-choice. If a requirement or project decision excludes an operation that this
-policy classifies as a mandatory public/registered contract, report the exact
-conflict and ask for an authoritative scope decision. Do not silently count the
-exclusion as coverage, override the project decision, or weaken the mandatory
-rule on your own. Continue independent in-scope work, but withhold a complete
-claim for the disputed surface until the conflict is resolved.
+The registry may narrow non-contract surfaces and internal operator-facing
+SSR views/forms; the explicit concurrency choice is separate. Inventory every
+matching SSR action before applying `focused`, then put selected business
+workflows into the evidence matrix and list unselected workflows separately as
+out of scope. Neither registration nor functional HTML form submission alone
+makes a valid SSR scope choice conflict with this policy. If an exclusion also
+reaches a mandatory product API, registered job/scheduler/handler, or selected
+SSR workflow, report the exact conflict and ask for an authoritative decision.
+Do not count an excluded operation as `covered`, override the project decision,
+or weaken the mandatory boundary on your own. Continue independent in-scope
+work, but withhold a complete claim for the disputed surface.
 
 ## Transient evidence matrix
 
@@ -81,8 +85,10 @@ zero.
 
 Perform both passes. Neither substitutes for the other.
 
-1. **Requirement to test.** Map every authoritative operation, scenario,
-   public outcome, boundary, and direct artifact to a collected node.
+1. **Requirement to test.** Within the agreed coverage boundary, map every
+   authoritative operation, scenario, public outcome, boundary, and direct
+   artifact to a collected node. List consciously excluded operator-SSR
+   workflows outside the five status counts; do not represent them as tested.
 2. **Test to requirement.** Map every collected behavior case back to a precise
    authoritative requirement. A route, source branch, test name, or green
    assertion is not sufficient authority.

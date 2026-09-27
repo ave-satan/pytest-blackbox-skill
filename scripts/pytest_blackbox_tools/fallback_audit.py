@@ -689,7 +689,7 @@ def load_policy(root: Path) -> tuple[Policy, list[str]]:
                 ):
                     errors.append(
                         f"coverage rule {index} looks operation-specific; "
-                        "use a generalized non-contract surface selector"
+                        "use a generalized policy-scopable surface selector"
                     )
                 if selector_key in seen_selectors:
                     errors.append(
