@@ -6,6 +6,21 @@ apply only relevant migrations without rerunning a full suite audit.
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-11-12
+
+### Fixed
+
+- The `lint` workflow now routes semantic questions about selected files, a
+  diff, or a bounded functional surface to `review`. It uses `audit` only for
+  an explicitly requested full-suite or complete-component audit, preserving
+  the user's requested scope.
+
+### Existing-project actions
+
+No project configuration or test-suite migration is required. Use the updated
+workflow routing for subsequent checks; a focused semantic question does not
+require a full audit.
+
 ## [0.11.1] - 2026-09-27
 
 ### Changed
@@ -991,7 +1006,8 @@ No project-file migration was required.
 - The shared black-box pytest policy, project onboarding, fallback discovery,
   and deterministic auditor.
 
-[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.11.1...HEAD
+[Unreleased]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.11.2...HEAD
+[0.11.2]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/ave-satan/pytest-blackbox-skill/compare/v0.10.0...v0.10.1

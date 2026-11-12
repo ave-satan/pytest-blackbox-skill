@@ -16,5 +16,7 @@ still indexes the complete suite for cross-file evidence.
 
 Report the selected mode and every error or warning. This workflow covers only
 mechanically provable rules: it does not emit `SEM*` findings, inventory public
-contracts, or establish suite completeness. If the requested conclusion needs
-any of those, use the `audit` workflow instead.
+contracts, or establish suite completeness. For semantic questions about selected
+files, a diff, or a bounded functional surface, use the `review` workflow.
+Use `audit` only when the user explicitly requests a full-suite or complete
+component audit. Preserve the requested scope.
